@@ -17,7 +17,7 @@ export default class Pop3CommandMap implements CommandMap {
     }
 
     list(id?: number | undefined): string {
-        return `LIST ${id}`;
+        return `LIST ${id ?? ""}`;
     }
 
     retr(id: number): string {
