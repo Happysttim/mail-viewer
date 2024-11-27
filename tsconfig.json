@@ -1,18 +1,20 @@
 {
     "compilerOptions": {
         "target": "ESNext",
-        "module": "CommonJS",
-        "jsx": "react",
+        "module": "ESNext",
+        "jsx": "preserve",
         "strict": true,
-        "noEmit": false,
+        "noEmit": true,
         "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "types": ["node"],
         "baseUrl": ".",
+        "outDir": "./build"
     },
+    "include": ["**/*.ts", "**/*.tsx"],
     "exclude": [
         "*.config.ts",
-        "./test/*.ts"
     ]
 }

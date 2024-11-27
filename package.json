@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node .",
-    "test": "tsx test",
+    "testimap": "tsx test/basic_imap.ts",
+    "testpop3": "tsx test/basic_pop3.ts",
     "lint": "npx eslint ."
   },
   "keywords": [],
@@ -23,6 +24,7 @@
   },
   "dependencies": {
     "electron": "^32.1.2",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "sqlite3": "^5.1.7"
   }
 }
