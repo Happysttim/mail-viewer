@@ -1,5 +1,4 @@
-import Protocol from "../type/protocol";
-import { CommandMap } from "./command";
+import { CommandMap, Protocol } from "lib/type";
 
 export default class Pop3CommandMap implements CommandMap {
     readonly __protocol: Protocol = "POP3";

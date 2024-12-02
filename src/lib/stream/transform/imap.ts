@@ -1,18 +1,17 @@
-import log from "src/lib/logger";
-import ImapCommandMap from "../../../command/imap";
-import { QueueMessage } from "../../../command/queue";
-import Handler, { Status } from "../handler";
-import { LogType } from "src/lib/logger/logger";
-import MailNetwork from "../../network/network";
+import log from "lib/logger";
+import ImapCommandMap from "lib/command/imap";
+import { QueueMessage } from "lib/command/queue";
+import CommandTransform from "../transform";
+import { LogType } from "lib/logger/logger";
 import { TransformCallback } from "stream";
 
-export default class ImapHandler extends Handler<ImapCommandMap> {
+export default class ImapTransform extends CommandTransform<ImapCommandMap> {
 
     private readonly imapCommand: ImapCommandMap;
-    private readonly tag = "ImapHandler";
+    private readonly tag = "ImapTransform";
 
-    constructor(network: MailNetwork) {
-        super(network);
+    constructor() {
+        super();
         this.imapCommand = new ImapCommandMap();
     }
 

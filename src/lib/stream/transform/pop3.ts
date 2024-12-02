@@ -1,16 +1,16 @@
-import log from "src/lib/logger";
-import { QueueMessage } from "../../../command/queue";
-import Handler, { Status } from "../handler";
-import { LogType } from "src/lib/logger/logger";
-import MailNetwork from "../../network/network";
+import log from "lib/logger";
+import { QueueMessage } from "../../command/queue";
+import CommandTransform from "../transform";
+import { LogType } from "lib/logger/logger";
+import MailNetwork from "../network";
 import { TransformCallback } from "stream";
-import Pop3CommandMap from "src/lib/command/pop3";
+import Pop3CommandMap from "lib/command/pop3";
 
-export default class Pop3Handler extends Handler<Pop3CommandMap> {
+export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
 
     private readonly pop3CommandMap: Pop3CommandMap;
 
-    private readonly tag = "Pop3Handler";
+    private readonly tag = "Pop3Transform";
 
     constructor() {
         super();
@@ -35,10 +35,10 @@ export default class Pop3Handler extends Handler<Pop3CommandMap> {
                 this.add(this.pop3CommandMap.quit());
             break;
             case "retr":
-
+                this.add(this.pop3CommandMap.retr(chunk.args[0]));
             break;
             case "stat":
-
+                this.add(this.pop3CommandMap.stat());
             break;
         }
 

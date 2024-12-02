@@ -1,90 +1,138 @@
-import { CommandMap } from "../command/command";
-import log from "../logger";
-import { LogType } from "../logger/logger";
-import Handler from "./command/handler";
-import MailNetwork from "./network/network";
+import MailNetwork from "lib/stream/network";
+import { MailAddress, MailRegistry, CommandName, CommandArgs } from "lib/type";
+import log from "lib/logger";
+import { LogType } from "lib/logger/logger";
+import { Protocol, ProtocolToMap } from "lib/type";
 
-type MailAddress = Record<string, MailNetwork>
+export default class StreamManager<P extends Protocol> {
 
-export default class StreamManager {
-
-    private mailAddresses: MailAddress = {}; 
+    private mailRegistry: MailRegistry<ProtocolToMap<P>> = {}; 
     private readonly tag = "StreamManager";
 
-    connectPipe<T extends CommandMap>(mailAddress: string, handler: Handler<T>, network: MailNetwork): boolean {
+    async registerNetwork(
+        mailAddress: MailAddress,
+        network: MailNetwork<ProtocolToMap<P>>
+    ) {
         if (this.isRegisterMail(mailAddress)) {
             log(
                 {
                     tag: this.tag,
                     type: LogType.ERROR,
-                    context: `메일 아이디(${mailAddress})는 이미 등록되어 있습니다.`
+                    context: `${mailAddress} 는 이미 등록된 계정입니다.`
                 }
             );
-            return false;
+
+            throw new Error();
         }
-        network.setPipe(handler);
-        this.mailAddresses[mailAddress] = network;
+
+        this.mailRegistry[mailAddress] = network;
+
         log(
             {
                 tag: this.tag,
                 type: LogType.INFO,
-                context: `메일 아이디(${mailAddress}) 파이프 연결`
+                context: `${mailAddress} 계정이 등록되었습니다.`
             }
         );
-        return true;
     }
 
-    disconnectPipe(mailAddress: string): boolean {
+    unregisterNetwork(mailAddress: MailAddress) {
         if (!this.isRegisterMail(mailAddress)) {
             log(
                 {
                     tag: this.tag,
                     type: LogType.ERROR,
-                    context: `메일 아이디(${mailAddress})는 등록되어 있지 않습니다.`
+                    context: `${mailAddress} 는 유효하지 않는 계정입니다.`
                 }
             );
+
+            throw new Error();
+        }
+
+        this.mailRegistry[mailAddress].end();
+        delete this.mailRegistry[mailAddress];
+
+        log(
+            {
+                tag: this.tag,
+                type: LogType.INFO,
+                context: `${mailAddress} 계정을 삭제했습니다.`
+            }
+        );
+    }
+
+    handle<
+        Command extends CommandName<ProtocolToMap<P>>, 
+        Args extends CommandArgs<ProtocolToMap<P>, Command>>
+    (mailAddress: MailAddress, command: Command, ...args: Args): boolean {
+        if (!this.isRegisterMail(mailAddress)) {
+            log(
+                {
+                    tag: this.tag,
+                    type: LogType.ERROR,
+                    context: `${mailAddress} 는 유효하지 않는 계정입니다.`
+                }
+            );
+
             return false;
         }
 
-        this.mailAddresses[mailAddress].end();
+        const handle = this.mailRegistry[mailAddress].handler();
+        if (!handle) {
+            log(
+                {
+                    tag: this.tag,
+                    type: LogType.ERROR,
+                    context: `${mailAddress} 계정은 유효하지 않은 핸들러를 가지고있습니다.`
+                }
+            );
+
+            return false;
+        }
+
+        handle.command(command, ...args);
         return true;
     }
 
-    dumpPipe() {
+    async flushAllHandler() {
+        for(const [_, value] of Object.entries(this.mailRegistry)) {
+            const handler = value.handler();
+            if (handler) {
+                await handler.flush();
+            }
+        };
+    }
+
+    dumpLog() {
         log(
             {
                 tag: this.tag,
                 type: LogType.DEBUG,
-                context: `--------------------------------------------PIPE DUMP`,
+                context: "-----------------------------------DUMP LOG"
             }
         );
-        Object.entries(this.mailAddresses).forEach(mailAddress => {
+
+        Object.entries(this.mailRegistry).forEach(value => {
             log(
                 {
                     tag: this.tag,
                     type: LogType.DEBUG,
-                    context: `메일계정 ${mailAddress[0]}, 호스트 정보 ${JSON.stringify(mailAddress[1].hostOption)}`,
+                    context: `메일계정: ${value[0]}`
                 }
             );
         });
+
         log(
             {
                 tag: this.tag,
                 type: LogType.DEBUG,
-                context: `--------------------------------------------END`,
+                context: "-----------------------------------END LOG"
             }
         );
     }
 
-    network(mailAddress: string): MailNetwork | undefined {
-        if (this.isRegisterMail(mailAddress)) {
-            return this.mailAddresses[mailAddress];
-        }
-        return undefined;
-    }
-
-    private isRegisterMail(mailAddress: string): boolean {
-        return this.mailAddresses[mailAddress] ? true : false;
+    private isRegisterMail(mailAddress: MailAddress): boolean {
+        return this.mailRegistry[mailAddress] ? true : false;
     }
 
 }

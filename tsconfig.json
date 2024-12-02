@@ -10,6 +10,9 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "types": ["node"],
+        "paths": {
+            "*": ["src/*"]
+        },
         "baseUrl": ".",
         "outDir": "./build"
     },

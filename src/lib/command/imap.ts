@@ -1,6 +1,5 @@
-import User from "../object/user";
-import Protocol from "../type/protocol";
-import { CommandMap } from "./command";
+import User from "lib/object/user";
+import { CommandMap, Protocol } from "lib/type/";
 
 export default class ImapCommandMap implements CommandMap {
     readonly __protocol: Protocol = "IMAP";
