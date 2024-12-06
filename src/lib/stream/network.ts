@@ -7,7 +7,6 @@ import CommandTransform from "./transform";
 import { HostOption } from "lib/object/network/host-option";
 import Receiver from "./receiver";
 import { CommandMap } from "lib/type";
-import CommandMemory from "./memory";
 import Handler from "./handler";
 
 export enum SocketStatus {
@@ -38,11 +37,10 @@ export default class MailNetwork<T extends CommandMap> {
 
     pipe() {
         if (this.socket) {
-            const commandMemory = new CommandMemory<T>();
-            this.commandHandler = new Handler(commandMemory);
-            const receiver = new Receiver(commandMemory);
+            this.commandHandler = new Handler(this.commandTransform);
+            const receiver = new Receiver(this.commandTransform);
 
-            pipeline(commandMemory, this.commandTransform, this.socket, receiver, err => {
+            pipeline(this.commandTransform, this.socket, receiver, err => {
                 if (err) {
                     log(
                         {

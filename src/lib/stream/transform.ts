@@ -1,13 +1,15 @@
 import { Transform } from "node:stream";
 import { TransformCallback } from "stream";
-import { CommandMap } from "lib/type";
+import { CommandMap, CommandName, CommandResult } from "lib/type";
 import { QueueMessage } from "lib/command/queue";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
+import { ZodObject, ZodTypeAny } from "zod";
 
 export default class CommandTransform<T extends CommandMap> extends Transform {
 
     private commands: string[] = [];
+    private resultStore: CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>>[] = [];
 
     constructor() {
         super(
@@ -24,8 +26,16 @@ export default class CommandTransform<T extends CommandMap> extends Transform {
         }
     }
 
-    protected add(command: string) {
+    protected addCommand(command: string) {
         this.commands.push(command);
+    }
+
+    protected addResultStore(schema: CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>>) {
+        this.resultStore.push(schema);
+    }
+
+    async forgotResult(): Promise<CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>> | undefined> {
+        return this.resultStore.shift();
     }
 
     protected command(): string {

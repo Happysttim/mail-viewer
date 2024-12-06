@@ -1,6 +1,7 @@
 import Pop3CommandMap from "lib/command/pop3";
 import MailNetwork from "lib/stream/network";
 import ImapCommandMap from "lib/command/imap";
+import { z, ZodArray, ZodBoolean, ZodNumber, ZodObject, ZodString, ZodTypeAny } from "zod";
 
 export type Protocol = "IMAP" | "POP3";
 export interface MailProtocol<T extends CommandMap> {
@@ -13,6 +14,12 @@ export type MailRegistry<T extends CommandMap> = Record<MailAddress, MailNetwork
 
 export interface CommandMap {
     readonly __protocol: Protocol;
+}
+
+export interface CommandResult<T extends CommandMap, C extends CommandName<T>, Z extends ZodObject<{[key: string]: ZodTypeAny}>> {
+    command: C;
+    args: CommandArgs<T, C>, 
+    schema: Z
 }
 
 export type CommandName<T extends CommandMap> = keyof Omit<T, "__protocol">;

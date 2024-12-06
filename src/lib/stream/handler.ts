@@ -2,19 +2,18 @@ import { CommandArgs, CommandMap, CommandName } from "lib/type";
 import CommandQueue from "lib/command/queue";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import CommandMemory from "./memory";
-
+import CommandTransform from "./transform";
 export default class Handler<T extends CommandMap> {
 
     private promiseCommandQueue: Promise<void> = Promise.resolve();
     private readonly commandQueue: CommandQueue<T> = new CommandQueue();
-    private readonly commandMemory: CommandMemory<T>;
+    private readonly commandTransform: CommandTransform<T>;
     private readonly tag = "Handler";
 
     constructor(
-        commandMemory: CommandMemory<T>
+        commandTransform: CommandTransform<T>
     ) {
-        this.commandMemory = commandMemory;
+        this.commandTransform = commandTransform;
     }
 
     command<
@@ -27,7 +26,7 @@ export default class Handler<T extends CommandMap> {
         this.commandQueue.addQueue(name, ...args);
         this.promiseCommandQueue = this.promiseCommandQueue.then(async () => {
             const message = await this.commandQueue.removeQueue();
-            if (message && this.commandMemory.write(message)) {
+            if (message && this.commandTransform.write(message)) {
                 log(
                     {
                         tag: this.tag,

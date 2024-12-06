@@ -1,33 +1,34 @@
-import { CommandMap, Protocol } from "lib/type";
+import { createPop3Result, DeleResult, DeleSchema, ErrorSchema, ListResult, ListSchema, PassResult, QuitResult, RetrResult, RetrSchema, StatResult, StatSchema, UserResult } from "lib/object/schema/pop3";
+import { CommandMap,  Protocol } from "lib/type";
 
 export default class Pop3CommandMap implements CommandMap {
     readonly __protocol: Protocol = "POP3";
     
-    user(userid: string): string {
-        return `USER ${userid}`;
+    user(userid: string): UserResult {
+        return createPop3Result("user", [userid], ErrorSchema);
     }
 
-    pass(password: string): string {
-        return `PASS ${password}`;
+    pass(password: string): PassResult {
+        return createPop3Result("pass", [password], ErrorSchema);
     }
 
-    stat(): string {
-        return "STAT";
+    stat(): StatResult {
+        return createPop3Result("stat", [], StatSchema);
     }
 
-    list(id?: number | undefined): string {
-        return `LIST ${id ?? ""}`;
+    list(id?: number | undefined): ListResult {
+        return createPop3Result("list", id ? [id] : [], ListSchema);
     }
 
-    retr(id: number): string {
-        return `RETR ${id}`;
+    retr(id: number): RetrResult {
+        return createPop3Result("retr", [id], RetrSchema);
     }
 
-    dele(id: number): string {
-        return `DELE ${id}`;
+    dele(id: number): DeleResult {
+        return createPop3Result("dele", [id], DeleSchema);
     }
 
-    quit(): string {
-        return "QUIT";
+    quit(): QuitResult {
+        return createPop3Result("quit", [], ErrorSchema);
     }
 }

@@ -1,24 +1,24 @@
-import { Duplex, PassThrough, Transform } from "node:stream";
+import { Transform } from "node:stream";
 import { TransformCallback } from "stream";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
 import { CommandMap } from "lib/type";
-import CommandMemory from "./memory";
+import CommandTransform from "./transform";
 
 export default class Receiver<T extends CommandMap> extends Transform {
 
     private readonly tag = "Receiver";
-    private readonly commandMemory: CommandMemory<T>;
-    private promiseCommandMemory: Promise<void> = Promise.resolve();
+    private readonly commandTransform: CommandTransform<T>;
+    private promiseCommandTransform: Promise<void> = Promise.resolve();
     private ignoreWelcome = false;
     private reroll = false;
     private previousCommand: string = "";
 
     constructor(
-        commandMemory: CommandMemory<T>
+        commandTransform: CommandTransform<T>
     ) {
         super();
-        this.commandMemory = commandMemory;
+        this.commandTransform = commandTransform;
     }
 
     _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
@@ -44,21 +44,17 @@ export default class Receiver<T extends CommandMap> extends Transform {
                 }
             );
 
-            if (chunk.length < this.writableHighWaterMark) {
-                this.reroll = false;
-            }
-
             return callback();
         }
 
-        this.promiseCommandMemory = this.promiseCommandMemory.then(async () => {
-            const memory = await this.commandMemory.forget();
-            if (memory) {
+        this.promiseCommandTransform = this.promiseCommandTransform.then(async () => {
+            const schema = await this.commandTransform.forgotResult();
+            if (schema) {
                 log(
                     {
                         tag: this.tag,
                         type: LogType.INFO,
-                        context: `${memory.toString()} 명령어 결과 크기: ${chunk.length}`
+                        context: `${schema.command.toString()} 명령어 결과 크기: ${chunk.length}`
                     }
                 );
                 
@@ -70,10 +66,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
                     }
                 );
 
-                this.previousCommand = memory.toString();
-                if (chunk.length >= this.readableHighWaterMark) {
-                    this.reroll = true;
-                }
+                this.previousCommand = schema.toString();
             }
 
             callback();
