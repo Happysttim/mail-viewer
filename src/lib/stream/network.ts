@@ -8,6 +8,7 @@ import { HostOption } from "lib/object/network/host-option";
 import Receiver from "./receiver";
 import { CommandMap } from "lib/type";
 import Handler from "./handler";
+import Parser from "lib/parser/parser";
 
 export enum SocketStatus {
     CONNECTING = "CONNECTING",
@@ -24,21 +25,24 @@ export default class MailNetwork<T extends CommandMap> {
     private socketStatus: SocketStatus;
 
     readonly commandTransform: CommandTransform<T>;
+    readonly parser: Parser<T>;
     readonly hostOption: HostOption;
 
     constructor(
         commandTransform: CommandTransform<T>,
+        parser: Parser<T>,
         hostOption: HostOption
     ) {
         this.hostOption = hostOption;
         this.commandTransform = commandTransform;
+        this.parser = parser;
         this.socketStatus = SocketStatus.CONNECTING;
     }
 
     pipe() {
         if (this.socket) {
             this.commandHandler = new Handler(this.commandTransform);
-            const receiver = new Receiver(this.commandTransform);
+            const receiver = new Receiver(this.commandTransform, this.parser);
 
             pipeline(this.commandTransform, this.socket, receiver, err => {
                 if (err) {

@@ -36,6 +36,7 @@ export const ListSchema = ErrorSchema.extend({
 export const RetrSchema = ErrorSchema.extend({
     errorDetail: z.string().optional(), 
     result: z.object({
+        octets: z.number(),
         date: z.date(),
         from: z.string(),
         to: z.string(),
@@ -55,15 +56,13 @@ export const RetrSchema = ErrorSchema.extend({
     }).optional(),
 });
 
-export const DeleSchema = ErrorSchema.extend({
-    errorDetail: z.string().optional(),
-});
-
 export type UserResult = CommandResult<Pop3CommandMap, "user", typeof ErrorSchema>;
 export type PassResult = CommandResult<Pop3CommandMap, "pass", typeof ErrorSchema>;
 export type StatResult = CommandResult<Pop3CommandMap, "stat", typeof StatSchema>;
 export type ListResult = CommandResult<Pop3CommandMap, "list", typeof ListSchema>;
 export type RetrResult = CommandResult<Pop3CommandMap, "retr", typeof RetrSchema>;
-export type DeleResult = CommandResult<Pop3CommandMap, "dele", typeof DeleSchema>;
+export type DeleResult = CommandResult<Pop3CommandMap, "dele", typeof ErrorSchema>;
 export type QuitResult = CommandResult<Pop3CommandMap, "quit", typeof ErrorSchema>;
 export type Pop3Result = UserResult | PassResult | StatResult | ListResult | RetrResult | DeleResult | QuitResult;
+export type Pop3Schema = typeof ErrorSchema | typeof StatSchema | typeof ListSchema | typeof RetrSchema;
+ 

@@ -146,5 +146,6 @@ export type StatusResult = CommandResult<ImapCommandMap, "status", typeof ErrorS
 export type FetchResult = CommandResult<ImapCommandMap, "fetch", typeof FetchSchema>;
 export type LogoutResult = CommandResult<ImapCommandMap, "logout", typeof ErrorSchema>;
 export type ImapResult = CapabilityResult | StoreResult | UidResult | NoopResult | IdleResult |
-    ExpungeResult | SearchResult | LoginResult | SelectResult | ListResult | StatusResult |
+    ExpungeResult | SearchResult | SelectResult | ListResult | StatusResult |
     FetchResult | LoginResult;
+export type ImapSchema = typeof CapabilitySchema | typeof ErrorSchema | typeof SearchSchema | typeof SelectSchema | typeof ListSchema | typeof FetchSchema;

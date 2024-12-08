@@ -1,17 +1,16 @@
 import MailNetwork from "lib/stream/network";
-import { MailAddress, MailRegistry, CommandName, CommandArgs } from "lib/type";
+import { MailAddress, MailRegistry, CommandName, CommandArgs, CommandMap } from "lib/type";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import { Protocol, ProtocolToMap } from "lib/type";
 
-export default class StreamManager<P extends Protocol> {
+export default class StreamManager<T extends CommandMap> {
 
-    private mailRegistry: MailRegistry<ProtocolToMap<P>> = {}; 
+    private mailRegistry: MailRegistry<T> = {}; 
     private readonly tag = "StreamManager";
 
     async registerNetwork(
         mailAddress: MailAddress,
-        network: MailNetwork<ProtocolToMap<P>>
+        network: MailNetwork<T>
     ) {
         if (this.isRegisterMail(mailAddress)) {
             log(
@@ -62,8 +61,8 @@ export default class StreamManager<P extends Protocol> {
     }
 
     handle<
-        Command extends CommandName<ProtocolToMap<P>>, 
-        Args extends CommandArgs<ProtocolToMap<P>, Command>>
+        Command extends CommandName<T>, 
+        Args extends CommandArgs<T, Command>>
     (mailAddress: MailAddress, command: Command, ...args: Args): boolean {
         if (!this.isRegisterMail(mailAddress)) {
             log(
