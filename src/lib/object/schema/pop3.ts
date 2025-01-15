@@ -1,6 +1,7 @@
 import Pop3CommandMap from "lib/command/pop3";
 import { CommandArgs, CommandName, CommandResult } from "lib/type";
 import { z, ZodObject, ZodTypeAny } from "zod";
+import { ContentSchema } from "./common";
 
 export function createPop3Result<T extends CommandName<Pop3CommandMap>, Z extends ZodObject<{[key: string]: ZodTypeAny}>>
     (
@@ -34,26 +35,22 @@ export const ListSchema = ErrorSchema.extend({
 });
 
 export const RetrSchema = ErrorSchema.extend({
-    errorDetail: z.string().optional(), 
     result: z.object({
-        octets: z.number(),
         date: z.date(),
         from: z.string(),
         to: z.string(),
         subject: z.string(),
-        rootBoundary: z.string().optional(),
-        boundaries: z.array(
-            z.object({
-                name: z.string(),
-                section: z.number(),
-                contentType: z.string(),
-                contentTranferEncoding: z.string().optional(),
-                contentDisposition: z.string().optional(),
-                childBoundary: z.string().optional(),
-                contents: z.string(),
-            })
-        )
+        content: ContentSchema,
     }).optional(),
+});
+
+export const UidlSchema = ErrorSchema.extend({
+    result: z.array(
+        z.object({
+            seq: z.number(),
+            uid: z.string(),
+        })
+    ).optional(),
 });
 
 export type UserResult = CommandResult<Pop3CommandMap, "user", typeof ErrorSchema>;
@@ -61,8 +58,9 @@ export type PassResult = CommandResult<Pop3CommandMap, "pass", typeof ErrorSchem
 export type StatResult = CommandResult<Pop3CommandMap, "stat", typeof StatSchema>;
 export type ListResult = CommandResult<Pop3CommandMap, "list", typeof ListSchema>;
 export type RetrResult = CommandResult<Pop3CommandMap, "retr", typeof RetrSchema>;
+export type UidlResult = CommandResult<Pop3CommandMap, "uidl", typeof UidlSchema>;
 export type DeleResult = CommandResult<Pop3CommandMap, "dele", typeof ErrorSchema>;
 export type QuitResult = CommandResult<Pop3CommandMap, "quit", typeof ErrorSchema>;
-export type Pop3Result = UserResult | PassResult | StatResult | ListResult | RetrResult | DeleResult | QuitResult;
-export type Pop3Schema = typeof ErrorSchema | typeof StatSchema | typeof ListSchema | typeof RetrSchema;
+export type Pop3Result = UserResult | PassResult | StatResult | ListResult | RetrResult | UidlResult | DeleResult | QuitResult;
+export type Pop3Schema = typeof ErrorSchema | typeof StatSchema | typeof ListSchema | typeof UidlSchema | typeof RetrSchema;
  

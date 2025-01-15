@@ -9,11 +9,12 @@ import { CommandArgs, CommandName } from "lib/type";
 export default class ImapTransform extends CommandTransform<ImapCommandMap> {
 
     private readonly imapCommand: ImapCommandMap;
-    private readonly tag = "ImapTransform";
-    private readonly imapTag = "ImapTag";
+    private readonly tag = "ImapTransfer";
+    private readonly imapTag;
 
-    constructor() {
+    constructor(imapTag: string) {
         super();
+        this.imapTag = imapTag;
         this.imapCommand = new ImapCommandMap();
     }
 
@@ -103,7 +104,7 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
             {
                 tag: this.tag,
                 type: LogType.INFO,
-                context: `${chunk.command} ${chunk.args} 명령어 전송`,
+                context: `${this.command()} 명령어 전송`,
             }
         );
         this.suffix();

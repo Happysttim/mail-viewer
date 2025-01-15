@@ -2,9 +2,13 @@ import { Transform } from "node:stream";
 import { TransformCallback } from "stream";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import { CommandMap } from "lib/type";
+import { CommandMap, CommandName, CommandResult } from "lib/type";
 import CommandTransform from "./transform";
 import Parser from "lib/parser/parser";
+import { ZodObject, ZodTypeAny } from "zod";
+
+type CommandResultLike<T extends CommandMap> = CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>>;
+type EOFType = "UNDEFINED" | "EOF" | "NOT_EOF";
 
 export default class Receiver<T extends CommandMap> extends Transform {
 
@@ -13,6 +17,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
     private readonly parser: Parser<T>;
     private promiseCommandTransform: Promise<void> = Promise.resolve();
     private ignoreWelcome = false;
+    private usingSchema = false;
 
     private previousCommand: string = "";
 
@@ -31,45 +36,27 @@ export default class Receiver<T extends CommandMap> extends Transform {
             return callback();
         }
 
-        if (this.parser.checkResult()) {
-            if (!this.parser.eof()) {
-                log(
-                    {
-                        tag: this.tag,
-                        type: LogType.INFO,
-                        context: `${this.previousCommand} 명령어 결과 크기: ${chunk.length}`
-                    }
-                );
-                this.parser.concatBuffer(chunk);
-                return callback();
-            }
-        }
-
         this.promiseCommandTransform = this.promiseCommandTransform.then(async () => {
-            const schema = await this.commandTransform.forgotResult();
-            if (schema) {
-                this.parser.flushAndChange(schema);
-                this.parser.concatBuffer(chunk);
+            if (this.parserEOF() === "UNDEFINED" || this.usingSchema) {
+                const result = await this.commandTransform.forgotResult();
+                this.parserFlushAndChange(result, chunk);
+
+                this.usingSchema = false;
+            } else if (this.parserEOF() === "NOT_EOF") {
+                this.concatChunk(chunk);
+            }
+
+            if (this.parserEOF() === "EOF") {
+                const schema = this.parser.schema();
                 log(
                     {
                         tag: this.tag,
                         type: LogType.INFO,
-                        context: `${schema.command.toString()} 명령어 결과 크기: ${chunk.length}`
+                        context: `${this.previousCommand} 명령어 결과: ${JSON.stringify(schema, null, 2)}`
                     }
                 );
-                this.previousCommand = schema.command.toString();
 
-                if (this.parser.eof()) {
-                    const schema = this.parser.schema();
-                
-                    log(
-                        {
-                            tag: this.tag,
-                            type: LogType.INFO,
-                            context: `명령어 결과: ${JSON.stringify(schema)}`
-                        }
-                    );
-                }
+                this.usingSchema = true;
             }
 
             callback();
@@ -78,6 +65,35 @@ export default class Receiver<T extends CommandMap> extends Transform {
 
     _flush(callback: TransformCallback): void {
         callback();
+    }
+
+    private parserFlushAndChange(schema: CommandResultLike<T> | undefined, chunk: Buffer): boolean {
+        if (schema) {
+            this.parser.flushAndChange(schema);
+            this.parser.concatBuffer(chunk);
+
+            this.previousCommand = schema.command.toString(); 
+            return true;
+        }
+
+        return false;
+    }
+
+    private concatChunk(chunk: Buffer, schema?: CommandResultLike<T> | undefined) {
+        if (this.parser.checkResult()) {
+            this.parser.concatBuffer(chunk);
+            return;
+        }
+
+        this.parserFlushAndChange(schema, chunk);
+    }
+
+    private parserEOF(): EOFType {
+        if (this.parser.checkResult()) {
+            return this.parser.eof() ? "EOF" : "NOT_EOF";
+        }
+
+        return "UNDEFINED";
     }
 
 }

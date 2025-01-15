@@ -38,7 +38,9 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
                 case "dele":
                     return `DELE ${args[0]}`;
                 case "quit":
-                    return `QUIT`
+                    return `QUIT`;
+                case "uidl":
+                    return `UIDL`;
                 default:
                     return ""
             }
@@ -67,6 +69,9 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
             break;
             case "stat":
                 this.addResultStore(this.pop3CommandMap.stat());
+            break;
+            case "uidl":
+                this.addResultStore(this.pop3CommandMap.uidl());
             break;
         }
 

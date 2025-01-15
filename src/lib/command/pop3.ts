@@ -1,4 +1,4 @@
-import { createPop3Result, DeleResult, DeleSchema, ErrorSchema, ListResult, ListSchema, PassResult, QuitResult, RetrResult, RetrSchema, StatResult, StatSchema, UserResult } from "lib/object/schema/pop3";
+import { createPop3Result, DeleResult, ErrorSchema, ListResult, ListSchema, PassResult, QuitResult, RetrResult, RetrSchema, StatResult, StatSchema, UidlResult, UidlSchema, UserResult } from "lib/object/schema/pop3";
 import { CommandMap,  Protocol } from "lib/type";
 
 export default class Pop3CommandMap implements CommandMap {
@@ -25,7 +25,11 @@ export default class Pop3CommandMap implements CommandMap {
     }
 
     dele(id: number): DeleResult {
-        return createPop3Result("dele", [id], DeleSchema);
+        return createPop3Result("dele", [id], ErrorSchema);
+    }
+
+    uidl(): UidlResult {
+        return createPop3Result("uidl", [], UidlSchema);
     }
 
     quit(): QuitResult {

@@ -6,6 +6,7 @@ type Zod = ZodObject<{[key: string]: ZodTypeAny}>;
 export default abstract class Parser<T extends CommandMap> {
     
     protected commandResult!: CommandResult<T, CommandName<T>, Zod>;
+    protected buffer: Buffer = Buffer.from([]);
 
     checkResult(): boolean {
         return this.commandResult !== undefined;
@@ -13,6 +14,16 @@ export default abstract class Parser<T extends CommandMap> {
 
     abstract eof(): boolean;
     abstract schema(): z.infer<typeof this.commandResult.schema> | undefined;
-    abstract concatBuffer(buffer: Buffer): void;
-    abstract flushAndChange(result: CommandResult<T, CommandName<T>, Zod>): void;
+    
+    concatBuffer(buffer: Buffer): void {
+        this.buffer = Buffer.concat([this.buffer, buffer]);
+    }
+
+    flushAndChange(result: CommandResult<T, CommandName<T>, Zod>): void {
+        this.buffer.fill(0);
+        this.buffer = Buffer.from([]);
+
+        this.commandResult = result;
+    }
+
 }

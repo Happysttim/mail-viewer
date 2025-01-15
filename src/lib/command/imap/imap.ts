@@ -1,4 +1,4 @@
-import { CapabilityResult, CapabilitySchema, createImapResult, ErrorSchema, ExpungeResult, FetchResult, FetchSchema, FlagSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchResult, SearchSchema, SelectResult, SelectSchema, StandardFlag, StatusResult, StoreResult, UidResult } from "lib/object/schema/imap";
+import { CapabilityResult, CapabilitySchema, createImapResult, ErrorSchema, ExpungeResult, FetchResult, FetchSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchResult, SearchSchema, SelectResult, SelectSchema, StandardFlag, StatusResult, StatusSchema, StoreResult, UidResult } from "lib/object/schema/imap";
 import { CommandMap, Protocol } from "lib/type/";
 
 export default class ImapCommandMap implements CommandMap {
@@ -45,7 +45,7 @@ export default class ImapCommandMap implements CommandMap {
     }
 
     status(box: string, attribute: string): StatusResult {
-        return createImapResult("status", [box, attribute], ErrorSchema);
+        return createImapResult("status", [box, attribute], StatusSchema);
     }
 
     fetch(range: string, items: string): FetchResult {

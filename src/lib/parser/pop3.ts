@@ -2,12 +2,12 @@ import Pop3CommandMap from "lib/command/pop3";
 import { Pop3Result } from "lib/object/schema/pop3";
 import { z } from "zod";
 import Parser from "./parser";
+import { contentSchema } from "./common/contents";
 
 type CommandType = "SINGLE" | "MULTI" | "RETR" | "UNKNOWN";
 
 export default class Pop3Parser extends Parser<Pop3CommandMap> {
 
-    private buffer: Buffer = Buffer.from([]);
     private octets: number = 0;
     private isError: boolean = false;
     private firstLine: string = "";
@@ -23,7 +23,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
             return /^(\+OK)|(\-ERR)/g.test(this.firstLine.trim());
         }
 
-        if (this.commandType() === "MULTI") {
+        if (this.commandType() === "MULTI" || this.commandType() == "RETR") {
             return bufferUtf8.endsWith(".\r\n");
         }
 
@@ -40,8 +40,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
             return undefined;
         }
 
-        const command = this.commandResult.command;
-        const schema = this.commandResult.schema;
+        const { command, args, schema } = this.commandResult;
         const bufferUtf8 = this.buffer.toString("utf8");
         
         if (["user", "pass", "dele"].includes(command)) {
@@ -67,6 +66,32 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
             });
         }
 
+        if (command === "uidl") {
+            const uidls = bufferUtf8.matchAll(/^(\d+)\s(.+)\r?\n/gm);
+            const uidlList: {
+                seq: number,
+                uid: string,
+            }[] = [];
+
+            if (this.isError || !uidls) {
+                return schema.parse({
+                    error: true
+                });
+            }
+
+            for (const uidl of uidls) {
+                uidlList.push({
+                    seq: parseInt(uidl[1] ?? 0),
+                    uid: uidl[2] ?? "",
+                })
+            }
+
+            return schema.parse({
+                error: false,
+                result: uidlList
+            });
+        }
+
         if (command === "list") {
             const numbers = bufferUtf8.match(/\d+/g);
             const list: {
@@ -74,52 +99,93 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
                 octets: number,
             }[] = [];
 
-            if (this.isError || numbers === null) {
+            if (this.isError || !numbers) {
                 return schema.parse({
                     error: true,
                 });
             }
 
-            for(let i = 2; i < numbers.length; i += 2) {
-                list.push(
-                    {
-                        index: parseInt(numbers[i]),
-                        octets: parseInt(numbers[i + 1]),
+            if (args.length === 0) {
+                for(let i = 2; i < numbers.length; i += 2) {
+                    list.push(
+                        {
+                            index: parseInt(numbers[i]),
+                            octets: parseInt(numbers[i + 1]),
+                        }
+                    )
+                }
+    
+                return schema.parse({
+                    error: false,
+                    result: {
+                        amount: parseInt(numbers[0]),
+                        octets: parseInt(numbers[1]),
+                        list,
                     }
-                )
+                });
             }
+
+            list.push(
+                {
+                    index: parseInt(numbers[0]),
+                    octets: parseInt(numbers[1]),
+                }
+            );
 
             return schema.parse({
                 error: false,
                 result: {
-                    amount: parseInt(numbers[0]),
+                    amount: 1,
                     octets: parseInt(numbers[1]),
                     list,
                 }
-            })
+            });
         }
 
         if (command === "retr") {
-            
+            const header = bufferUtf8.substring(0, bufferUtf8.indexOf("\r\n\r\n")).replaceAll("\t", "");
+            const matches = header.matchAll(/^([^:]+):\s*(.+)/gm);
+            const retrSchema: Partial<z.infer<typeof this.commandResult.schema>> = {};
+            const schema = contentSchema(bufferUtf8);
+
+            retrSchema.result = {};
+            retrSchema.result.content = schema;
+
+            for (const match of matches) {
+                const key = match[1].replace("\n", "").trim().toLowerCase();
+                switch (key) {
+                    case "date":
+                        retrSchema.result.date = match[2];
+                        break;
+                    case "from":
+                        retrSchema.result.from = match[2];
+                        break;
+                    case "to":
+                        retrSchema.result.to = match[2];
+                    case "subject":
+                        retrSchema.result.subject = match[2];
+                        break;
+                    default:
+                }
+            }
+
+            return retrSchema;
         }
 
         return undefined;
     }
 
     concatBuffer(buffer: Buffer) {
-        this.buffer = Buffer.concat([this.buffer, buffer]);
+        super.concatBuffer(buffer);
         if (this.firstLine === "") {
             this.init();
         }
     }
 
     flushAndChange(pop3Result: Pop3Result) {
-        this.buffer.fill(0);
-        this.buffer = Buffer.from([]);
+        super.flushAndChange(pop3Result);
         this.firstLine = "";
         this.octets = 0;
-
-        this.commandResult = pop3Result;
 
         this.init();
     }

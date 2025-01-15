@@ -1,6 +1,7 @@
 import ImapCommandMap from "lib/command/imap";
 import { CommandArgs, CommandName, CommandResult } from "lib/type";
 import { z, ZodObject, ZodTypeAny } from "zod";
+import { ContentSchema } from "./common";
 
 export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodObject<{[key: string]: ZodTypeAny}>>
     (
@@ -53,22 +54,6 @@ export const HeaderSchema = z.object({
     subject: z.string(),
 });
 
-export const BodySchema = z.object({
-    octets: z.number(),
-    rootBoundary: z.string(),
-    boundaries: z.array(
-        z.object({
-            name: z.string(),
-            section: z.number(),
-            contentType: z.string(),
-            contentTranferEncoding: z.string().optional(),
-            contentDisposition: z.string().optional(),
-            childBoundary: z.string().optional(),
-            contents: z.string(),
-        }),
-    ),
-});
-
 export const FlagSchema = z.object({
     flags: z.array(z.string())
 });
@@ -81,16 +66,59 @@ export const OctetSchema = z.object({
     octets: z.number(),
 });
 
-export const BodyStructureSchema = z.object({
+type BodyStructureType = {
+    mimeType: string,
+    subType: string,
+    parameters?: { 
+        key: string, 
+        value: string,
+    }[],
+    contentId?: string,
+    contentDescription?: string,
+    transferEncoding?: string,
+    contentLength?: number,
+    contentLine?: number,
+    md5Hash?: string,
+    contentDisposition?: {
+        type: string,
+        parameters?: {
+            key: string,
+            value: string | number,
+        }[],
+    },
+    language?: string | string[],
+    location?: string,
+    children?: BodyStructureType[],
+}
+
+export const BodyStructureSchema: z.ZodType<BodyStructureType> = z.object({
     mimeType: z.string(),
     subType: z.string(),
-    encoding: z.string(),
-    contentId: z.string(),
-    contentDescription: z.string(),
-    transferEncoding: z.string(),
-    contentLength: z.number(),
-    contentLine: z.number(),
-    additionalMimeParts: z.array(z.string()),
+    parameters: z.array(z.object({
+        key: z.string(),
+        value: z.string(),
+    })).optional(),
+    contentId: z.string().optional(),
+    contentDescription: z.string().optional(),
+    transferEncoding: z.string().optional(),
+    contentLength: z.number().optional(),
+    contentLine: z.number().optional(),
+    md5Hash: z.string().optional(),
+    contentDisposition: z.object({
+        type: z.string(),
+        parameters: z.array(
+            z.object({
+                key: z.string(),
+                value: z.union([z.string(), z.number()]),
+            })
+        ).optional()
+    }).optional(),
+    language: z.union([
+        z.string(),
+        z.array(z.string()),
+    ]).optional(),
+    location: z.string().optional(),
+    children: z.array(z.lazy(() => BodyStructureSchema)).optional(),
 });
 
 export const CapabilitySchema = ErrorSchema.extend({
@@ -113,7 +141,7 @@ export const FetchSchema = ErrorSchema.extend({
                 uid: UidSchema.optional(),
                 bodyStructure: BodyStructureSchema.optional(),
                 header: HeaderSchema.optional(),
-                bodySchema: BodySchema.optional(),
+                bodySchema: ContentSchema.optional(),
             }),
         ),
     }).optional(),
@@ -132,6 +160,18 @@ export const SearchSchema = ErrorSchema.extend({
     }).optional(),
 });
 
+export const StatusSchema = ErrorSchema.extend({
+    result: z.object({
+        flags: z.array(z.enum(["MESSAGES", "RECENT", "UIDNEXT", "UIDVALIDITY", "UNSEEN", "HIGHESTMODSEQ"])),
+        status: z.array(
+            z.object({
+                flag: z.string(),
+                count: z.number(),
+            })
+        )
+    }).optional(),
+});
+
 export type CapabilityResult = CommandResult<ImapCommandMap, "capability", typeof CapabilitySchema>;
 export type StoreResult = CommandResult<ImapCommandMap, "store", typeof ErrorSchema>;
 export type UidResult = CommandResult<ImapCommandMap, "uid", typeof SearchSchema>;
@@ -142,7 +182,7 @@ export type SearchResult = CommandResult<ImapCommandMap, "search", typeof Search
 export type LoginResult = CommandResult<ImapCommandMap, "login", typeof ErrorSchema>;
 export type SelectResult = CommandResult<ImapCommandMap, "select", typeof SelectSchema>;
 export type ListResult = CommandResult<ImapCommandMap, "list", typeof ListSchema>;
-export type StatusResult = CommandResult<ImapCommandMap, "status", typeof ErrorSchema>;
+export type StatusResult = CommandResult<ImapCommandMap, "status", typeof StatusSchema>;
 export type FetchResult = CommandResult<ImapCommandMap, "fetch", typeof FetchSchema>;
 export type LogoutResult = CommandResult<ImapCommandMap, "logout", typeof ErrorSchema>;
 export type ImapResult = CapabilityResult | StoreResult | UidResult | NoopResult | IdleResult |
