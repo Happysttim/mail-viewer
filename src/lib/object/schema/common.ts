@@ -13,6 +13,10 @@ type ContentHeaderSchemaType = {
     contentDescription?: string,
 }
 
+export const ErrorSchema = z.object({
+    error: z.boolean(),
+});
+
 export const ContentHeaderSchema: z.ZodType<ContentHeaderSchemaType> = z.object({
     mimeVersion: z.string().optional(),
     contentType: z.string().optional(),
@@ -34,15 +38,6 @@ type ContentSchemaType = {
     contentBody?: string,
     children?: ContentSchemaType[],
 }
-
-// export const BoundarySchema: z.ZodType<BoundarySchemaType> = z.object({
-//     name: z.string(),
-//     section: z.number(),
-//     childBoundary: z.string().optional(),
-//     node: z.array(z.lazy(() => BoundarySchema)).optional(),
-//     contentHeader: ContentHeaderSchema,
-//     contentBody: ContentBodySchema.optional(),
-// });
 
 export const ContentSchema: z.ZodType<ContentSchemaType> = z.object({
     contentHeader: ContentHeaderSchema,
