@@ -1,7 +1,10 @@
-import { CapabilityResult, CapabilitySchema, createImapResult, ErrorSchema, ExpungeResult, FetchResult, FetchSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchResult, SearchSchema, SelectResult, SelectSchema, StandardFlag, StatusResult, StatusSchema, StoreResult, UidResult } from "lib/object/schema/imap";
+import { CapabilityResult, CapabilitySchema, createImapResult, ExpungeResult, FetchResult, FetchSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchErrorSchema, SearchResult, SelectResult, SelectSchema, StandardFlag, StatusResult, StatusSchema, StoreResult, UIDErrorResultSchema, UidResult } from "lib/object/schema/imap";
 import { CommandMap, Protocol } from "lib/type/";
+import { SearchQuery } from "./search";
+import { FetchPeek, Range, UIDArgument, UIDType } from "./type";
+import { ErrorSchema } from "lib/object/schema/common";
 
-export default class ImapCommandMap implements CommandMap {
+export class ImapCommandMap implements CommandMap {
     readonly __protocol: Protocol = "IMAP";
 
     capability(): CapabilityResult {
@@ -12,8 +15,8 @@ export default class ImapCommandMap implements CommandMap {
         return createImapResult("store", [action, flag], ErrorSchema);
     }
 
-    uid(command: "fetch" | "store" | "search", range: string, criteria: string): UidResult {
-        return createImapResult("uid", [command, range, criteria], SearchSchema);
+    uid<Arg extends UIDArgument>(arg: Arg, type: UIDType<Arg>): UidResult {
+        return createImapResult("uid", [ arg, type ], UIDErrorResultSchema);
     }
 
     noop(): NoopResult {
@@ -28,8 +31,8 @@ export default class ImapCommandMap implements CommandMap {
         return createImapResult("expunge", [], ErrorSchema);
     }
 
-    search(criteria: string): SearchResult {
-        return createImapResult("search", [criteria], SearchSchema);
+    search(range: Range, query: SearchQuery): SearchResult {
+        return createImapResult("search", [ range, query ], SearchErrorSchema);
     }
 
     login(id: string, password: string): LoginResult {
@@ -48,7 +51,7 @@ export default class ImapCommandMap implements CommandMap {
         return createImapResult("status", [box, attribute], StatusSchema);
     }
 
-    fetch(range: string, items: string): FetchResult {
+    fetch(range: string, items: FetchPeek): FetchResult {
         return createImapResult("fetch", [range, items], FetchSchema);
     }
 

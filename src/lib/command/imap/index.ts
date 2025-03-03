@@ -1,3 +1,2 @@
-import ImapCommandMap from "./imap";
-
-export default ImapCommandMap;
+export * from "./imap";
+export * from "./search";
