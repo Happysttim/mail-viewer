@@ -1,7 +1,7 @@
 import Pop3CommandMap from "lib/command/pop3";
 import { CommandArgs, CommandName, CommandResult } from "lib/type";
 import { z, ZodObject, ZodTypeAny } from "zod";
-import { ContentSchema } from "./common";
+import { ContentSchema, ErrorSchema } from "./common";
 
 export function createPop3Result<T extends CommandName<Pop3CommandMap>, Z extends ZodObject<{[key: string]: ZodTypeAny}>>
     (
@@ -11,10 +11,6 @@ export function createPop3Result<T extends CommandName<Pop3CommandMap>, Z extend
     ): CommandResult<Pop3CommandMap, T, Z> {
         return { command, args, schema };
     }
-
-export const ErrorSchema = z.object({
-    error: z.boolean(),
-});
 
 export const StatSchema = ErrorSchema.extend({
     result: z.object({
@@ -36,7 +32,7 @@ export const ListSchema = ErrorSchema.extend({
 
 export const RetrSchema = ErrorSchema.extend({
     result: z.object({
-        date: z.date(),
+        date: z.string(),
         from: z.string(),
         to: z.string(),
         subject: z.string(),

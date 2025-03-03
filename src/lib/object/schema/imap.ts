@@ -1,7 +1,8 @@
-import ImapCommandMap from "lib/command/imap";
+import { ImapCommandMap } from "lib/command/imap";
 import { CommandArgs, CommandName, CommandResult } from "lib/type";
 import { z, ZodObject, ZodTypeAny } from "zod";
-import { ContentSchema } from "./common";
+import { ContentSchema, ErrorSchema } from "./common";
+import { parse } from "date-fns";
 
 export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodObject<{[key: string]: ZodTypeAny}>>
     (
@@ -21,15 +22,12 @@ export enum StandardFlag {
     Recent = "\\Recent",
 }
 
-export const ErrorSchema = z.object({
-    error: z.boolean(),
-});
-
 export const ListSchema = ErrorSchema.extend({
     result: z.array(
         z.object({
-            alias: z.string(),
-            path: z.string(),
+            hasChildren: z.boolean(),
+            flags: z.array(z.string()),
+            separate: z.string(),            
             boxName: z.string(),
         }),
     ).optional(),
@@ -42,13 +40,13 @@ export const SelectSchema = ErrorSchema.extend({
         recent: z.number(),
         flags: z.array(z.string()),
         parmanentFlags: z.array(z.string()),
-        validUid: z.number(),
-        nextUid: z.number(),
+        validUID: z.number(),
+        nextUID: z.number(),
     }).optional(),
 });
 
 export const HeaderSchema = z.object({
-    date: z.date(),
+    date: z.string(),
     from: z.string(),
     to: z.string(),
     subject: z.string(),
@@ -56,10 +54,6 @@ export const HeaderSchema = z.object({
 
 export const FlagSchema = z.object({
     flags: z.array(z.string())
-});
-
-export const UidSchema = z.object({
-    uid: z.number(),
 });
 
 export const OctetSchema = z.object({
@@ -121,6 +115,14 @@ export const BodyStructureSchema: z.ZodType<BodyStructureType> = z.object({
     children: z.array(z.lazy(() => BodyStructureSchema)).optional(),
 });
 
+export const InternalDateSchema = z.object({
+    fetchID: z.number(),
+    fetchUID: z.number().optional(),
+    internalDate: z.string().transform(
+        date => parse(date, "dd-MMM-yyyy HH:mm:ss X", new Date())
+    ),
+});
+
 export const CapabilitySchema = ErrorSchema.extend({
     result: z.object({
         imapVersion: z.string(),
@@ -128,36 +130,115 @@ export const CapabilitySchema = ErrorSchema.extend({
     }).optional(),
 });
 
-export const FetchSchema = ErrorSchema.extend({
-    result: z.object({
-        isFlag: z.boolean(),
-        isUid: z.boolean(),
-        isHeader: z.boolean(),
-        isText: z.boolean(),
-        isBodyStructure: z.boolean(),
-        fetch: z.array(
-            z.object({
-                flag: FlagSchema.optional(),
-                uid: UidSchema.optional(),
-                bodyStructure: BodyStructureSchema.optional(),
-                header: HeaderSchema.optional(),
-                bodySchema: ContentSchema.optional(),
-            }),
-        ),
-    }).optional(),
+export const FetchFlagSchema = z.object({
+    fetchType: z.literal("FLAGS"),
+    fetchFlag: z.array(
+        z.object({
+            fetchID: z.number(),
+            fetchUID: z.number().optional(),
+            flagSchema: FlagSchema,
+        })
+    )
 });
 
-export const SearchSchema = ErrorSchema.extend({
-    result: z.object({
-        isUid: z.boolean(),
-        isFlag: z.boolean(),
-        isCondition: z.boolean(),
-        range: z.string(),
-        count: z.number(),
-        condition: z.string().optional(),
-        flags: z.array(FlagSchema).optional(),
-        search: z.array(z.number()),
-    }).optional(),
+export const FetchInternaldateSchema = z.object({
+    fetchType: z.literal("INTERNALDATE"),
+    fetchDate: z.array(InternalDateSchema)
+});
+
+export const FetchBodyStructureSchema = z.object({
+    fetchType: z.literal("BODYSTRUCTURE"),
+    fetchStructure: z.array(
+        z.object({
+            fetchID: z.number(),
+            fetchUID: z.number().optional(),
+            structure: BodyStructureSchema.optional(),
+        })
+    )
+});
+
+export const FetchRFC822Schema = z.object({
+    fetchType: z.literal("RFC822"),
+    fetchContent: z.array(
+        z.object({
+            id: z.number(),
+            mailContent: z.object({
+                date: z.string(),
+                from: z.string(),
+                to: z.string(),
+                subject: z.string(),
+                content: ContentSchema,
+            }),
+        })
+    )
+});
+
+export const FetchHeaderSchema = z.object({
+    fetchType: z.literal("RFC822.HEADER"),
+    fetchHeader: z.array(
+        z.object({
+            id: z.number(),
+            header: HeaderSchema,
+        })
+    )
+});
+
+export const FetchResultSchema = z.object({
+    fetchResult: z.discriminatedUnion("fetchType", [
+        FetchFlagSchema,
+        FetchInternaldateSchema,
+        FetchBodyStructureSchema,
+        FetchRFC822Schema,
+        FetchHeaderSchema,
+    ]),
+});
+
+export const FetchSchema = ErrorSchema.extend({
+    result: FetchResultSchema.optional(),
+});
+
+export const UIDFetchSchema = z.object({
+    arg: z.literal("FETCH"),
+    fetch: FetchResultSchema.optional(),
+});
+
+export const UIDErrorSchema = z.object({
+    arg: z.enum(
+        [
+            "STORE",
+            "COPY",
+            "MOVE",
+            "EXPUNGE",
+        ]
+    ),
+});
+
+export const SearchSchema = z.object({
+    range: z.string().regex(/^\d+($|\:\d+$)/),
+    query: z.string().optional(),
+    count: z.number(),
+    searchResult: z.array(z.number())
+});
+
+export const UIDSearchSchema = z.object({
+    arg: z.literal("SEARCH"),
+    searchResult: SearchSchema.optional(),
+});
+
+export const UIDResultSchema = z.object({
+    uidResult: z.discriminatedUnion("arg", [
+        UIDFetchSchema,
+        UIDErrorSchema,
+        UIDSearchSchema
+    ])
+});
+
+export const UIDErrorResultSchema = ErrorSchema.extend({
+    result: UIDResultSchema.optional()
+});
+
+export const SearchErrorSchema = ErrorSchema.extend({
+    result: SearchSchema.optional()
 });
 
 export const StatusSchema = ErrorSchema.extend({
@@ -174,11 +255,11 @@ export const StatusSchema = ErrorSchema.extend({
 
 export type CapabilityResult = CommandResult<ImapCommandMap, "capability", typeof CapabilitySchema>;
 export type StoreResult = CommandResult<ImapCommandMap, "store", typeof ErrorSchema>;
-export type UidResult = CommandResult<ImapCommandMap, "uid", typeof SearchSchema>;
+export type UidResult = CommandResult<ImapCommandMap, "uid", typeof UIDErrorResultSchema>;
 export type NoopResult = CommandResult<ImapCommandMap, "noop", typeof ErrorSchema>;
 export type IdleResult = CommandResult<ImapCommandMap, "idle", typeof ErrorSchema>;
 export type ExpungeResult = CommandResult<ImapCommandMap, "expunge", typeof ErrorSchema>;
-export type SearchResult = CommandResult<ImapCommandMap, "search", typeof SearchSchema>;
+export type SearchResult = CommandResult<ImapCommandMap, "search", typeof SearchErrorSchema>;
 export type LoginResult = CommandResult<ImapCommandMap, "login", typeof ErrorSchema>;
 export type SelectResult = CommandResult<ImapCommandMap, "select", typeof SelectSchema>;
 export type ListResult = CommandResult<ImapCommandMap, "list", typeof ListSchema>;
