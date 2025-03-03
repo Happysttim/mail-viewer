@@ -1,6 +1,6 @@
 import Pop3CommandMap from "lib/command/pop3";
 import MailNetwork from "lib/stream/network";
-import ImapCommandMap from "lib/command/imap";
+import { ImapCommandMap } from "lib/command/imap";
 import { ZodObject, ZodTypeAny } from "zod";
 import { Pop3Schema } from "lib/object/schema/pop3";
 import { ImapSchema } from "lib/object/schema/imap";

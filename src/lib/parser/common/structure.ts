@@ -2,39 +2,11 @@ import { BodyStructureSchema } from "lib/object/schema/imap";
 import { z } from "zod";
 
 type BodyStructure = z.infer<typeof BodyStructureSchema>;
-type BodyStructurePrimitive = Record<number, string>;
-type BodyStructureResult = Record<number, BodyStructure>;
-// const BODYSTRUCTURE_START_EXPR = /^(text|image|application|audio|example|font|model|video)/;
-// const MULTIPARTS_START_EXPR = /^(mixed|alternative|related|form\-data|signed|encrypted|digest|paraellel|report|byteranges)/;
 
 const BODYSTRUCTURE_EXPR = /((text|image|application|audio|example|font|model|video) (.+?) (\(.+?\)|NIL) (.+?|NIL) (.+?|NIL) (.+?|NIL) (\d+?|NIL) (\d+?|NIL) (.+?|NIL) (\((.+?) (\(.+?\))\)||NIL) (.+?|NIL) (.+?|NIL))/g;
 const MULTIPARTS_EXPR = /((mixed|alternative|related|form\-data|signed|encrypted|digest|paraellel|report|byteranges)) \(boundary (.+?)\) (.+?|NIL) (.+?|NIL) (.+?|NIL)?(?: \((.+?)\))?(?: (.+?|NIL))?\)/g;
 
-export function extractBodyStructure (original: string): BodyStructurePrimitive {
-    const bodyStructure: BodyStructurePrimitive = {};
-    const bodyStructureMatcher = [...original.matchAll(/\(BODYSTRUCTURE ()\)/g)];
-
-    for (const structure of bodyStructureMatcher) {
-        bodyStructure[parseInt(structure[1])] = original.substring(structure.index + structure[0].length, parseInt(structure[2]));
-    }
-
-    return bodyStructure;
-}
-
-export function bodyStructureParser ( 
-    primitive: BodyStructurePrimitive
-): BodyStructureResult {
-
-    const result: BodyStructureResult = {};
-
-    for (const bodyStructure of Object.entries(primitive)) {
-        result[parseInt(bodyStructure[0])] = readStructures(bodyStructure[1]);
-    }
-
-    return result;
-}
-
-function readStructures(str: string): BodyStructure {
+export function bodystructure(str: string): BodyStructure {
     const structure: Partial<BodyStructure> = {};
     str = str.replaceAll(`"`, "");
 
