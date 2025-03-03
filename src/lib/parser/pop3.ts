@@ -144,7 +144,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
 
         if (command === "retr") {
             const header = bufferUtf8.substring(0, bufferUtf8.indexOf("\r\n\r\n")).replaceAll("\t", "");
-            const matches = header.matchAll(/^([^:]+):\s*(.+)/gm);
+            const matches = header.matchAll(/^(?:(.+?):)\s*([\s\S]+?)(?=^.+:)/gm);
             const retrSchema: Partial<z.infer<typeof this.commandResult.schema>> = {};
             const schema = contentSchema(bufferUtf8);
 
@@ -155,15 +155,15 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
                 const key = match[1].replace("\n", "").trim().toLowerCase();
                 switch (key) {
                     case "date":
-                        retrSchema.result.date = match[2];
+                        retrSchema.result.date = match[2].replaceAll(/[\r\n]/gm, "").trim();
                         break;
                     case "from":
-                        retrSchema.result.from = match[2];
+                        retrSchema.result.from = match[2].replaceAll(/[\r\n]/gm, "").trim();
                         break;
                     case "to":
-                        retrSchema.result.to = match[2];
+                        retrSchema.result.to = match[2].replaceAll(/[\r\n]/gm, "").trim();
                     case "subject":
-                        retrSchema.result.subject = match[2];
+                        retrSchema.result.subject = match[2].replaceAll(/[\r\n]/gm, "").trim();
                         break;
                     default:
                 }
