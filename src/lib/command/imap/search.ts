@@ -1,119 +1,119 @@
-export type SearchOption = {
-    hasBracket: boolean;
+export function createQuery(): SearchQuery {
+    return new SearchQuery();
 }
 
-interface SearchArgument {
-    criteria: "ALL" | "ANSWERED" | "DELETED" | "FLAGGED" | "SEEN" | "UNSEEN" | "DRAFT" | "RECENT" | "BEFORE" | "SINCE" | "ON" | "FROM" | "TO" | "TEXT" | "BODY" | "KEYWORD" | "HEADER";
-    argument?: string;
-}
-
-type Operation = "AND" | "OR" | "NOT" | "BRACKET";
-type FetchArgument = "BODY" | "BODY.PEEK" | "FLAGS" | "INTERNALDATE" | "RFC822" | "RFC822.HEADER" | "RFC822.SIZE" | "RFC822.TEXT" | "UID" | `BODY[TEXT]` | `BODY[${number}]`;
-type StoreArgument = {
-    operation: "FLAGS" | "+FLAGS" | "-FLAGS" | "FLAGS.SILENT" | "+FLAGS.SILENT" | "-FLAGS.SILENT";
-    flag: "\\Seen" | "\\Answered" | "\\Flagged" | "\\Deleted" | "\\Draft" | "\\Recent";
-}
-type UIDArgument = "FETCH" | "STORE" | "SEARCH";
-type UIDCriteria<Arg extends UIDArgument> = 
-    Arg extends "FETCH" ? FetchArgument : 
-    Arg extends "STORE" ? StoreArgument :
-    Arg extends "SEARCH" ? SearchArgument[] : never;
-
-class SearchOperation {
-    private readonly conditions: SearchCondition[] = [];
-}
-
-export function createSearch(): SearchCondition {
-    return new SearchCondition();
-}
-
-class SearchCondition {
-    private readonly arguments: SearchArgument[] = [];
+export class SearchQuery {
+    
+    private query: string = "";
 
     constructor() {}
 
-    all(): SearchCondition {
-        this.arguments.push({ criteria: "ALL" });
+    get queryString(): string {
+        return this.query;
+    }
+
+    all(): SearchQuery {
+        this.query += "ALL ";
         return this;
     }
 
-    answered(): SearchCondition {
-        this.arguments.push({ criteria: "ANSWERED" });
+    answered(): SearchQuery {
+        this.query += "ANSWERED ";
         return this;
     }
 
-    deleted(): SearchCondition {
-        this.arguments.push({ criteria: "DELETED" });
+    deleted(): SearchQuery {
+        this.query += "DELETED ";
         return this;
     }
 
-    flagged(): SearchCondition {
-        this.arguments.push({ criteria: "FLAGGED" });
+    flagged(): SearchQuery {
+        this.query += "FLAGGED ";
         return this;
     }
 
-    seen(): SearchCondition {
-        this.arguments.push({ criteria: "SEEN" });
+    seen(): SearchQuery {
+        this.query += "SEEN ";
         return this;
     }
 
-    unseen(): SearchCondition {
-        this.arguments.push({ criteria: "UNSEEN" });
+    unseen(): SearchQuery {
+        this.query += "UNSEEN ";
         return this;
     }
 
-    draft(): SearchCondition {
-        this.arguments.push({ criteria: "DRAFT" });
+    draft(): SearchQuery {
+        this.query += "DRAFT ";
         return this;
     }
 
-    recent(): SearchCondition {
-        this.arguments.push({ criteria: "RECENT" });
+    recent(): SearchQuery {
+        this.query += "RECENT ";
         return this;
     }
 
-    before(date: string): SearchCondition {
-        this.arguments.push({ criteria: "BEFORE", argument: date });
+    before(date: string): SearchQuery {
+        this.query += `BEFORE ${date} `;
         return this;
     }
 
-    since(date: string): SearchCondition {
-        this.arguments.push({ criteria: "SINCE", argument: date });
+    since(date: string): SearchQuery {
+        this.query += `SINCE ${date} `;
         return this;
     }
 
-    on(date: string): SearchCondition {
-        this.arguments.push({ criteria: "ON", argument: date });
+    on(date: string): SearchQuery {
+        this.query += `ON ${date} `;
         return this;
     }
 
-    from(address: string): SearchCondition {
-        this.arguments.push({ criteria: "FROM", argument: address });
+    from(email: string): SearchQuery {
+        this.query += `FROM ${email} `;
         return this;
     }
 
-    to(address: string): SearchCondition {
-        this.arguments.push({ criteria: "TO", argument: address });
+    to(email: string): SearchQuery {
+        this.query += `TO ${email} `;
         return this;
     }
 
-    text(text: string): SearchCondition {
-        this.arguments.push({ criteria: "TEXT", argument: text });
+    text(text: string): SearchQuery {
+        this.query += `TEXT ${text} `;
         return this;
     }
 
-    body(text: string): SearchCondition {
-        this.arguments.push({ criteria: "BODY", argument: text });
+    body(text: string): SearchQuery {
+        this.query += `BODY ${text} `;
         return this;
     }
 
-    keyword(keyword: string): SearchCondition {
-        this.arguments.push({ criteria: "KEYWORD", argument: keyword });
+    keyword(text: string): SearchQuery {
+        this.query += `KEYWORD ${text} `;
         return this;
     }
 
-    header(field: string): SearchCondition {
-        this.arguments.push({ criteria: "HEADER", argument: field });
+    header(text: string): SearchQuery {
+        this.query += `HEADER ${text} `;
+        return this;
+    }
+
+    subQuery(query: SearchQuery): SearchQuery {
+        this.query += `(${query.queryString}) `;
+        return this;
+    }
+
+    and(query: SearchQuery): SearchQuery {
+        this.query += `AND ${query.queryString} `;
+        return this;
+    }
+
+    or(query: SearchQuery): SearchQuery {
+        this.query += `OR ${query.queryString} `;
+        return this;
+    }
+
+    not(query: SearchQuery): SearchQuery {
+        this.query += `NOT ${query.queryString} `;
         return this;
     }
 }
