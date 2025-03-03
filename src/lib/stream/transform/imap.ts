@@ -1,10 +1,11 @@
 import log from "lib/logger";
-import ImapCommandMap from "lib/command/imap";
+import { ImapCommandMap, SearchQuery } from "lib/command/imap";
 import { QueueMessage } from "lib/command/queue";
 import CommandTransform from "../transform";
 import { LogType } from "lib/logger/logger";
 import { TransformCallback } from "stream";
 import { CommandArgs, CommandName } from "lib/type";
+import { CopyArgument, StoreArgument, FetchArgument } from "lib/command/imap/type";
 
 export default class ImapTransform extends CommandTransform<ImapCommandMap> {
 
@@ -43,7 +44,7 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
                 case "noop":
                     return `${this.imapTag} NOOP`;
                 case "search":
-                    return `${this.imapTag} SEARCH ${args[0]}`;
+                    return `${this.imapTag} SEARCH ${args[0]} ${(args[1] as SearchQuery).queryString}`;
                 case "select":
                     return `${this.imapTag} SELECT ${args[0]}`;
                 case "status":
@@ -51,7 +52,24 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
                 case "store":
                     return `${this.imapTag} STORE ${args[0]} ${args[1]}`;
                 case "uid":
-                    return `${this.imapTag} UID ${args[0]} ${args[1]} ${args[2]}`;
+                    switch (args[0]) {
+                        case "SEARCH":
+                            return `${this.imapTag} UID SEARCH ${(args[1] as SearchQuery).queryString}`;
+                        case "STORE":
+                            const storeArgs = args[1] as StoreArgument;
+                            return `${this.imapTag} UID STORE ${storeArgs.operation} ${storeArgs.flag}`;
+                        case "FETCH":
+                            const fetchArgs = args[1] as FetchArgument;
+                            return `${this.imapTag} UID FETCH ${fetchArgs.range} ${fetchArgs.peek}`;
+                        case "COPY":
+                        case "MOVE":
+                            const criteriaArgs = args[1] as CopyArgument;
+                            return `${this.imapTag} UID ${args[0]} ${criteriaArgs.range} ${criteriaArgs.mailBox}`;
+                        case "EXPUNGE":
+                            return `${this.imapTag} UID EXPUNGE ${args[1]}`;
+                        default:
+                            return "";
+                    }
             }
         }
 
@@ -84,7 +102,7 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
                 this.addResultStore(this.imapCommand.noop());
                 break;
             case "search":
-                this.addResultStore(this.imapCommand.search(chunk.args[0]));
+                this.addResultStore(this.imapCommand.search(chunk.args[0], chunk.args[1]));
                 break;
             case "select":
                 this.addResultStore(this.imapCommand.select(chunk.args[0]));
@@ -96,7 +114,7 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
                 this.addResultStore(this.imapCommand.store(chunk.args[0], chunk.args[1]));
                 break;
             case "uid":
-                this.addResultStore(this.imapCommand.uid(chunk.args[0], chunk.args[1], chunk.args[2]));
+                this.addResultStore(this.imapCommand.uid(chunk.args[0], chunk.args[1]));
                 break;
         }
 
