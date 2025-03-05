@@ -1,4 +1,4 @@
-import { CommandMap, CommandName, CommandResult } from "lib/type";
+import { CommandArgs, CommandMap, CommandName, CommandResult } from "lib/type";
 import { z, ZodObject, ZodTypeAny } from "zod";
 
 type Zod = ZodObject<{[key: string]: ZodTypeAny}>;
@@ -7,6 +7,14 @@ export default abstract class Parser<T extends CommandMap> {
     
     protected commandResult!: CommandResult<T, CommandName<T>, Zod>;
     protected buffer: Buffer = Buffer.from([]);
+
+    get command(): CommandName<T> {
+        return this.commandResult!!.command;
+    }
+
+    get args(): CommandArgs<T, CommandName<T>> {
+        return this.commandResult!!.args;
+    }
 
     checkResult(): boolean {
         return this.commandResult !== undefined;
