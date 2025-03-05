@@ -3,18 +3,24 @@ import { TransformCallback } from "stream";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
 import { CommandMap, CommandName, CommandResult } from "lib/type";
-import CommandTransform from "./transform";
+import CommandTransform from "./transform/transform";
 import Parser from "lib/parser/parser";
 import { ZodObject, ZodTypeAny } from "zod";
+import { HostOption } from "lib/object/network/host-option";
+import streamEvent from "./event/event";
 
 type CommandResultLike<T extends CommandMap> = CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>>;
 type EOFType = "UNDEFINED" | "EOF" | "NOT_EOF";
 
 export default class Receiver<T extends CommandMap> extends Transform {
 
+    readonly protocol: string;
+    readonly hostOption: HostOption;
+
     private readonly tag = "Receiver";
     private readonly commandTransform: CommandTransform<T>;
     private readonly parser: Parser<T>;
+    
     private promiseCommandTransform: Promise<void> = Promise.resolve();
     private ignoreWelcome = false;
     private usingSchema = false;
@@ -23,11 +29,15 @@ export default class Receiver<T extends CommandMap> extends Transform {
 
     constructor(
         commandTransform: CommandTransform<T>,
-        parser: Parser<T>
+        parser: Parser<T>,
+        protocol: string,
+        hostOption: HostOption
     ) {
         super();
         this.commandTransform = commandTransform;
         this.parser = parser;
+        this.protocol = protocol;
+        this.hostOption = hostOption;
     }
 
     _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
@@ -38,7 +48,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
 
         this.promiseCommandTransform = this.promiseCommandTransform.then(async () => {
             if (this.parserEOF() === "UNDEFINED" || this.usingSchema) {
-                const result = await this.commandTransform.forgotResult();
+                const result = await this.commandTransform.forgetResult();
                 this.parserFlushAndChange(result, chunk);
 
                 this.usingSchema = false;
@@ -48,6 +58,11 @@ export default class Receiver<T extends CommandMap> extends Transform {
 
             if (this.parserEOF() === "EOF") {
                 const schema = this.parser.schema();
+                if (schema instanceof ZodObject) {
+                    streamEvent.emit<"command-receiver-schema", T>("command-receiver-schema", this.protocol, this.hostOption, this.parser.command, this.parser.args, schema);
+                } else {
+                    streamEvent.emit<"command-receiver-schema-error", T>("command-receiver-schema-error", this.protocol, this.hostOption, this.parser.command, this.parser.args);
+                }
                 log(
                     {
                         tag: this.tag,

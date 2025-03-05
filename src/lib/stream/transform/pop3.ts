@@ -1,6 +1,6 @@
 import log from "lib/logger";
 import { QueueMessage } from "../../command/queue";
-import CommandTransform from "../transform";
+import CommandTransform from "../transform/transform";
 import { LogType } from "lib/logger/logger";
 import MailNetwork from "../network";
 import { TransformCallback } from "stream";
@@ -17,7 +17,7 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
         this.pop3CommandMap = new Pop3CommandMap();
     }
 
-    private transformCommand<
+    protected transformCommand<
         Command extends CommandName<Pop3CommandMap>, 
         Args extends CommandArgs<Pop3CommandMap, Command>>
         (

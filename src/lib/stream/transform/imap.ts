@@ -1,7 +1,7 @@
 import log from "lib/logger";
 import { ImapCommandMap, SearchQuery } from "lib/command/imap";
 import { QueueMessage } from "lib/command/queue";
-import CommandTransform from "../transform";
+import CommandTransform from "../transform/transform";
 import { LogType } from "lib/logger/logger";
 import { TransformCallback } from "stream";
 import { CommandArgs, CommandName } from "lib/type";
@@ -19,7 +19,7 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
         this.imapCommand = new ImapCommandMap();
     }
 
-    private transformCommand<
+    protected transformCommand<
         Command extends CommandName<ImapCommandMap>, 
         Args extends CommandArgs<ImapCommandMap, Command>>
         (
