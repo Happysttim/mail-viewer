@@ -1,6 +1,6 @@
 import { CommandArgs, CommandMap, CommandName } from "lib/type";
-import log from "../logger";
-import { LogType } from "../logger/logger";
+import log from "lib/logger";
+import { LogType } from "lib/logger/logger";
 
 export type QueueMessage<T extends CommandMap> = {
     [P in CommandName<T>]: {
