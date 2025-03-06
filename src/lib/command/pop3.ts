@@ -1,9 +1,9 @@
 import { ErrorSchema } from "lib/object/schema/common";
 import { createPop3Result, DeleResult, ListResult, ListSchema, PassResult, QuitResult, RetrResult, RetrSchema, StatResult, StatSchema, UidlResult, UidlSchema, UserResult } from "lib/object/schema/pop3";
-import { CommandMap,  Protocol } from "lib/type";
+import { CommandMap } from "lib/type";
 
 export default class Pop3CommandMap implements CommandMap {
-    readonly __protocol: Protocol = "POP3";
+    readonly __protocol: string = "POP3";
     
     user(userid: string): UserResult {
         return createPop3Result("user", [userid], ErrorSchema);
