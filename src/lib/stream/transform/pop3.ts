@@ -1,8 +1,5 @@
-import log from "lib/logger";
-import { QueueMessage } from "../../command/queue";
-import CommandTransform from "../transform/transform";
-import { LogType } from "lib/logger/logger";
-import MailNetwork from "../network";
+import { QueueMessage } from "lib/command/queue";
+import CommandTransform from "lib/stream/transform";
 import { TransformCallback } from "stream";
 import Pop3CommandMap from "lib/command/pop3";
 import { CommandArgs, CommandName } from "lib/type";
@@ -10,7 +7,6 @@ import { CommandArgs, CommandName } from "lib/type";
 export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
 
     private readonly pop3CommandMap: Pop3CommandMap;
-    private readonly tag = "Pop3Transform";
 
     constructor() {
         super();
@@ -75,13 +71,6 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
             break;
         }
 
-        log(
-            {
-                tag: this.tag,
-                type: LogType.INFO,
-                context: `${this.command()} 명령어 전송`,
-            }
-        );
         this.suffix();
         callback(null, this.command());
     }

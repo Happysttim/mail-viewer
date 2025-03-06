@@ -1,8 +1,6 @@
-import log from "lib/logger";
 import { ImapCommandMap, SearchQuery } from "lib/command/imap";
 import { QueueMessage } from "lib/command/queue";
-import CommandTransform from "../transform/transform";
-import { LogType } from "lib/logger/logger";
+import CommandTransform from "lib/stream/transform";
 import { TransformCallback } from "stream";
 import { CommandArgs, CommandName } from "lib/type";
 import { CopyArgument, StoreArgument, FetchArgument } from "lib/command/imap/type";
@@ -10,7 +8,6 @@ import { CopyArgument, StoreArgument, FetchArgument } from "lib/command/imap/typ
 export default class ImapTransform extends CommandTransform<ImapCommandMap> {
 
     private readonly imapCommand: ImapCommandMap;
-    private readonly tag = "ImapTransfer";
     private readonly imapTag;
 
     constructor(imapTag: string) {
@@ -118,13 +115,6 @@ export default class ImapTransform extends CommandTransform<ImapCommandMap> {
                 break;
         }
 
-        log(
-            {
-                tag: this.tag,
-                type: LogType.INFO,
-                context: `${this.command()} 명령어 전송`,
-            }
-        );
         this.suffix();
         callback(null, this.command());
     }
