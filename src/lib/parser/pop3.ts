@@ -1,8 +1,9 @@
 import Pop3CommandMap from "lib/command/pop3";
-import { Pop3Result } from "lib/object/schema/pop3";
+import { ListSchema, Pop3Result, RetrSchema, StatSchema, UidlSchema } from "lib/object/schema/pop3";
 import { z } from "zod";
 import Parser from "./parser";
 import { contentSchema } from "./common/contents";
+import { ErrorSchema } from "lib/object/schema/common";
 
 type CommandType = "SINGLE" | "MULTI" | "RETR" | "UNKNOWN";
 
@@ -35,7 +36,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
         return false;
     }
 
-    schema(): z.infer<typeof this.commandResult.schema> | undefined {
+    protected receiveSchema(): typeof this.commandResult.schema | undefined {
         if (!this.eof()) {
             return undefined;
         }
@@ -44,7 +45,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
         const bufferUtf8 = this.buffer.toString("utf8");
         
         if (["user", "pass", "dele"].includes(command)) {
-            return schema.parse({
+            return ErrorSchema.safeParse({
                 error: this.isError,
             });
         }
@@ -52,12 +53,12 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
         if (command === "stat") {
             const numbers = bufferUtf8.match(/\d+/g);
             if (this.isError || numbers === null) {
-                return schema.parse({
+                return StatSchema.safeParse({
                     error: true,
                 });
             }
 
-            return schema.parse({
+            return StatSchema.safeParse({
                 error: false,
                 result: {
                     amount: parseInt(numbers[0]),
@@ -74,7 +75,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
             }[] = [];
 
             if (this.isError || !uidls) {
-                return schema.parse({
+                return UidlSchema.safeParse({
                     error: true
                 });
             }
@@ -86,7 +87,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
                 })
             }
 
-            return schema.parse({
+            return UidlSchema.safeParse({
                 error: false,
                 result: uidlList
             });
@@ -115,7 +116,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
                     )
                 }
     
-                return schema.parse({
+                return ListSchema.safeParse({
                     error: false,
                     result: {
                         amount: parseInt(numbers[0]),
@@ -132,7 +133,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
                 }
             );
 
-            return schema.parse({
+            return ListSchema.safeParse({
                 error: false,
                 result: {
                     amount: 1,
@@ -145,11 +146,16 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
         if (command === "retr") {
             const header = bufferUtf8.substring(0, bufferUtf8.indexOf("\r\n\r\n")).replaceAll("\t", "");
             const matches = header.matchAll(/^(?:(.+?):)\s*([\s\S]+?)(?=^.+:)/gm);
-            const retrSchema: Partial<z.infer<typeof this.commandResult.schema>> = {};
+            const retrSchema: Partial<z.infer<typeof RetrSchema>> = {};
             const schema = contentSchema(bufferUtf8);
 
-            retrSchema.result = {};
-            retrSchema.result.content = schema;
+            retrSchema.result = {
+                date: "",
+                from: "",
+                subject: "",
+                to: "",
+                content: schema,
+            };
 
             for (const match of matches) {
                 const key = match[1].replace("\n", "").trim().toLowerCase();

@@ -1,20 +1,17 @@
 import { ImapCommandMap, SearchQuery } from "lib/command/imap";
 import Parser from "./parser";
 import { TypeOf } from "zod";
-import { CapabilitySchema, FetchResultSchema, ImapResult, SearchSchema } from "lib/object/schema/imap";
+import { CapabilitySchema, FetchResultSchema, FetchSchema, ImapResult, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/object/schema/imap";
 import { bodystructure } from "./common/structure";
 import { FetchArgument, FetchPeek, UIDArgument } from "lib/command/imap/type";
 import { contentSchema } from "./common/contents";
+import { Zod } from "lib/type";
+import { ErrorSchema } from "lib/object/schema/common";
+import { ListSchema } from "lib/object/schema/pop3";
 
 const OK = (tag: string): string => `${tag} OK`;
 const NO = (tag: string): string => `${tag} NO`;
 const BAD = (tag: string): string => `${tag} BAD`;
-
-const ATTRIBUTE = [
-    "charset", "name", "boundary", "filename",
-    "creation-date", "modificationd-date", "read-date",
-    "size", "id", "inline", "attachment"
-] as const;
 
 type ResultType = "OK" | "NO" | "BAD" | "UNKNOWN" | "NO_EOF";
 type FetchRFC822 = "RFC822" | "RFC822.HEADER" | "NO_RFC";
@@ -63,7 +60,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
         return expr.test(bufferUtf);
     }
 
-    schema(): TypeOf<typeof this.commandResult.schema> | undefined {
+    protected receiveSchema(): typeof this.commandResult.schema | undefined {
         if (!this.eof()) {
             return undefined;
         }
@@ -73,7 +70,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
         const isError = ["NO", "BAD", "UNKNOWN"].includes(this.resultType());
 
         if (["store", "noop", "idle", "expunge", "login", "logout"].includes(command)) {
-            return schema.parse({
+            return ErrorSchema.safeParse({
                 error: isError,
             });
         }
@@ -84,7 +81,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
             if (match) {
                 const capability = [...match];
 
-                return CapabilitySchema.parse({
+                return CapabilitySchema.safeParse({
                     error: false,
                     result: {
                         imapVersion: capability[0] ? capability[0][1] ?? "" : "",
@@ -93,13 +90,13 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                 });
             }
 
-            return CapabilitySchema.parse({
+            return CapabilitySchema.safeParse({
                 error: true,
             });
         }
 
         if (command === "search") {
-            return schema.parse({
+            return SearchSchema.safeParse({
                 error: isError,
                 result: this.search(bufferUtf8),
             });
@@ -117,7 +114,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                 const nextUID = ok.find(v => v[1].toUpperCase() === "UIDNEXT");
                 const permanentFlags = ok.find(v => v[1].toUpperCase() === "PERMANENTFLAGS");
 
-                return schema.parse({
+                return SelectSchema.safeParse({
                     error: false,
                     result: {
                         boxName: args[0],
@@ -130,7 +127,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                     }
                 });
             } else {
-                return schema.parse({
+                return SelectSchema.safeParse({
                     error: true
                 });
             }
@@ -148,13 +145,13 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                     }
                 });
 
-                return schema.parse({
+                return ListSchema.safeParse({
                     error: false,
                     result,
                 });
             }
 
-            return schema.parse({
+            return ListSchema.safeParse({
                 error: true,
             });
         }
@@ -162,12 +159,12 @@ export default class ImapParser extends Parser<ImapCommandMap> {
         if (command === "fetch") {
             const fetchSchema = this.fetch(bufferUtf8, args[1] as FetchPeek);
             if (fetchSchema) {
-                return schema.parse({
+                return FetchSchema.safeParse({
                     error: false,
                     result: fetchSchema,
                 })
             }
-            return schema.parse({
+            return FetchSchema.safeParse({
                 error: false,
             });
         }
@@ -175,7 +172,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
         if (command === "uid") {
             const uidArg = args[0] as UIDArgument;
             if (["COPY", "MOVE", "STORE", "EXPUNGE"].includes(uidArg)) {
-                return schema.parse({
+                return UIDErrorResultSchema.safeParse({
                     error: isError,
                     result: {
                         uidResult: {
@@ -190,7 +187,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                 const fetchSchema = this.fetch(bufferUtf8, fetchArgs.peek);
 
                 if (fetchSchema) {
-                    return schema.parse({
+                    return UIDErrorResultSchema.safeParse({
                         error: false,
                         result: {
                             uidResult: {
@@ -201,7 +198,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                     });
                 }
 
-                return schema.parse({
+                return UIDErrorResultSchema.safeParse({
                     error: true,
                     result: {
                         uidResult: {
@@ -214,7 +211,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
             if (uidArg === "SEARCH") {
                 const searchSchema = this.search(bufferUtf8);
                 if (searchSchema) {
-                    return schema.parse({
+                    return UIDErrorResultSchema.safeParse({
                         error: false,
                         result: {
                             uidResult: {
@@ -224,7 +221,7 @@ export default class ImapParser extends Parser<ImapCommandMap> {
                         }
                     });
                 }
-                return schema.parse({
+                return UIDErrorResultSchema.safeParse({
                     error: true,
                     result: {
                         uidResult: {
