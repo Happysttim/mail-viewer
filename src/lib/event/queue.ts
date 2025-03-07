@@ -1,3 +1,0 @@
-class EventQueue {
-    private queue = [];
-}
