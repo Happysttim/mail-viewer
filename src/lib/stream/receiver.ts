@@ -3,10 +3,9 @@ import { TransformCallback } from "stream";
 import { CommandMap, CommandName, CommandResult, Zod } from "lib/type";
 import CommandTransform from "./transform";
 import Parser from "lib/parser/parser";
-import { ZodObject, ZodTypeAny } from "zod";
-import { StreamEvent } from "./event";
+import { z } from "zod";
+import { StreamEvent } from "lib/event/stream";
 
-type CommandResultLike<T extends CommandMap> = CommandResult<T, CommandName<T>, ZodObject<{[key: string]: ZodTypeAny}>>;
 type EOFType = "UNDEFINED" | "EOF" | "NOT_EOF";
 
 export default class Receiver<T extends CommandMap> extends Transform {
@@ -36,7 +35,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
         this.streamEvent = streamEvent;
     }
 
-    _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
+    _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback): void {
         if (!this.ignoreWelcome) {
             this.ignoreWelcome = true;
             return callback();
@@ -53,11 +52,10 @@ export default class Receiver<T extends CommandMap> extends Transform {
             }
 
             if (this.parserEOF() === "EOF") {
-                const schema = this.parser.schema();
-                if (schema) {
-                    this.streamEvent.emit("command-receiver-schema", this.id, this.parser.command, this.parser.args, schema as Zod);
+                if (this.parser.schema()) {
+                    this.streamEvent.emit("command-receiver-schema", this.id, this.parser.result);
                 } else {
-                    this.streamEvent.emit("command-receiver-schema-error", this.id, this.parser.command, this.parser.args);
+                    this.streamEvent.emit("command-receiver-schema-error", this.id, this.parser.result);
                 }
                 this.usingSchema = true;
             }
@@ -70,7 +68,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
         callback();
     }
 
-    private parserFlushAndChange(schema: CommandResultLike<T> | undefined, chunk: Buffer): boolean {
+    private parserFlushAndChange(schema: CommandResult<T, CommandName<T>, z.infer<Zod>> | undefined, chunk: Buffer): boolean {
         if (schema) {
             this.parser.flushAndChange(schema);
             this.parser.concatBuffer(chunk);
@@ -82,7 +80,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
         return false;
     }
 
-    private concatChunk(chunk: Buffer, schema?: CommandResultLike<T> | undefined) {
+    private concatChunk(chunk: Buffer, schema?: CommandResult<T, CommandName<T>, z.infer<Zod>>) {
         if (this.parser.checkResult()) {
             this.parser.concatBuffer(chunk);
             return;
