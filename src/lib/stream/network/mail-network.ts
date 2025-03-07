@@ -7,10 +7,11 @@ import Receiver from "lib/stream/receiver";
 import { CommandMap } from "lib/type";
 import Handler from "./handler";
 import Parser from "lib/parser/parser";
-import { streamEvent, StreamEvent } from "lib/stream/event";
+import { streamEvent, StreamEvent } from "lib/event/stream";
 import { uid } from "uid";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
+import SchemaEvent from "lib/event/schema";
 
 export enum SocketStatus {
     CONNECTING = "CONNECTING",
@@ -36,6 +37,7 @@ export default class MailNetwork<T extends CommandMap> {
     private commandHandler: Handler<T> | undefined = undefined;
     private status: SocketStatus = SocketStatus.DISCONNECT;
     private streamEvent: StreamEvent<T>;
+    private schemaEvent: SchemaEvent<T> | undefined;
 
     constructor(
         protocol: string,
@@ -43,7 +45,8 @@ export default class MailNetwork<T extends CommandMap> {
         hostOption: HostOption,
         commandMap: T,
         commandTransform: CommandTransform<T>,
-        parser: Parser<T>
+        parser: Parser<T>,
+        schemaEvent?: SchemaEvent<T>
     ) {
         this.commandTransform = commandTransform;
         this.parser = parser;
@@ -52,12 +55,17 @@ export default class MailNetwork<T extends CommandMap> {
         this.hostOption = hostOption;
         this.prefix = prefix;
         this.id = this.prefix + uid(16);
+        this.schemaEvent = schemaEvent;
         this.streamEvent = new StreamEvent();
         this.setSocketStatus(SocketStatus.CONNECTING);
 
         this.initEvent();
 
         streamEvent.emit("create-stream", this.protocol, this.hostOption, this.id);
+    }
+
+    event(schemaEvent: SchemaEvent<T>) {
+        this.schemaEvent = schemaEvent;
     }
 
     handler(): Handler<typeof this.commandMap> | undefined {
@@ -137,21 +145,24 @@ export default class MailNetwork<T extends CommandMap> {
                 }
             );
         });
-        this.streamEvent.on("command-receiver-schema", (id, commandName, args, schema) => {
+        this.streamEvent.on("command-receiver-schema", (id, result) => {
+            if (this.schemaEvent) {
+                this.schemaEvent.emit(result.command, id, result);
+            }
             log(
                 {
                     tag: this.tag,
                     type: LogType.INFO,
-                    context: `Stream(${id}) command(${commandName.toString()} ${args}) result: ${JSON.stringify(schema, null, 2)}`
+                    context: `Stream(${id}) command(${result.command}) args(${result.args}) result: ${JSON.stringify(result.schema, null, 2)}`
                 }
             );
         });
-        this.streamEvent.on("command-receiver-schema-error", (id, commandName, args) => {
+        this.streamEvent.on("command-receiver-schema-error", (id, result) => {
             log(
                 {
                     tag: this.tag,
                     type: LogType.ERROR,
-                    context: `Stream(${id}) command(${String(commandName)} ${args}) error has occurred`
+                    context: `Stream(${id}) command(${result.command}) args(${result.args}) error has occurred`
                 }
             );
         });
