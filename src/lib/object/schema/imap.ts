@@ -1,15 +1,15 @@
 import { ImapCommandMap } from "lib/command/imap";
-import { CommandArgs, CommandName, CommandResult } from "lib/type";
-import { z, ZodObject, ZodTypeAny } from "zod";
+import { CommandArgs, CommandName, CommandResult, Zod } from "lib/type";
+import { z, ZodObject } from "zod";
 import { ContentSchema, ErrorSchema } from "./common";
 import { parse } from "date-fns";
 
-export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodObject<{[key: string]: ZodTypeAny}>>
+export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodObject<any>>
     (
         command: T,
         args: CommandArgs<ImapCommandMap, T>,
         schema: Z
-    ): CommandResult<ImapCommandMap, T, Z> {
+    ): CommandResult<ImapCommandMap, T, z.infer<Z>> {
         return { command, args, schema };
     }
 
@@ -253,20 +253,21 @@ export const StatusSchema = ErrorSchema.extend({
     }).optional(),
 });
 
-export type CapabilityResult = CommandResult<ImapCommandMap, "capability", typeof CapabilitySchema>;
-export type StoreResult = CommandResult<ImapCommandMap, "store", typeof ErrorSchema>;
-export type UidResult = CommandResult<ImapCommandMap, "uid", typeof UIDErrorResultSchema>;
-export type NoopResult = CommandResult<ImapCommandMap, "noop", typeof ErrorSchema>;
-export type IdleResult = CommandResult<ImapCommandMap, "idle", typeof ErrorSchema>;
-export type ExpungeResult = CommandResult<ImapCommandMap, "expunge", typeof ErrorSchema>;
-export type SearchResult = CommandResult<ImapCommandMap, "search", typeof SearchErrorSchema>;
-export type LoginResult = CommandResult<ImapCommandMap, "login", typeof ErrorSchema>;
-export type SelectResult = CommandResult<ImapCommandMap, "select", typeof SelectSchema>;
-export type ListResult = CommandResult<ImapCommandMap, "list", typeof ListSchema>;
-export type StatusResult = CommandResult<ImapCommandMap, "status", typeof StatusSchema>;
-export type FetchResult = CommandResult<ImapCommandMap, "fetch", typeof FetchSchema>;
-export type LogoutResult = CommandResult<ImapCommandMap, "logout", typeof ErrorSchema>;
+export type CapabilityResult = CommandResult<ImapCommandMap, "capability", z.infer<typeof CapabilitySchema>>;
+export type StoreResult = CommandResult<ImapCommandMap, "store", z.infer<typeof ErrorSchema>>;
+export type UidResult = CommandResult<ImapCommandMap, "uid", z.infer<typeof UIDErrorResultSchema>>;
+export type NoopResult = CommandResult<ImapCommandMap, "noop", z.infer<typeof ErrorSchema>>;
+export type IdleResult = CommandResult<ImapCommandMap, "idle", z.infer<typeof ErrorSchema>>;
+export type ExpungeResult = CommandResult<ImapCommandMap, "expunge", z.infer<typeof ErrorSchema>>;
+export type SearchResult = CommandResult<ImapCommandMap, "search", z.infer<typeof SearchErrorSchema>>;
+export type LoginResult = CommandResult<ImapCommandMap, "login", z.infer<typeof ErrorSchema>>;
+export type SelectResult = CommandResult<ImapCommandMap, "select", z.infer<typeof SelectSchema>>;
+export type ListResult = CommandResult<ImapCommandMap, "list", z.infer<typeof ListSchema>>;
+export type StatusResult = CommandResult<ImapCommandMap, "status", z.infer<typeof StatusSchema>>;
+export type FetchResult = CommandResult<ImapCommandMap, "fetch", z.infer<typeof FetchSchema>>;
+export type LogoutResult = CommandResult<ImapCommandMap, "logout", z.infer<typeof ErrorSchema>>;
+
 export type ImapResult = CapabilityResult | StoreResult | UidResult | NoopResult | IdleResult |
     ExpungeResult | SearchResult | SelectResult | ListResult | StatusResult |
     FetchResult | LoginResult;
-export type ImapSchema = typeof CapabilitySchema | typeof ErrorSchema | typeof SearchSchema | typeof SelectSchema | typeof ListSchema | typeof FetchSchema;
+// export type ImapSchema = typeof CapabilitySchema | typeof ErrorSchema | typeof SearchSchema | typeof SelectSchema | typeof ListSchema | typeof FetchSchema;
