@@ -1,5 +1,7 @@
 import { ImapCommandMap } from "lib/command/imap";
 import Pop3CommandMap from "lib/command/pop3";
+import SchemaEvent from "lib/event/schema";
+import { RetrResult, RetrSchema } from "lib/object/schema/pop3";
 import ImapParser from "lib/parser/imap";
 import Pop3Parser from "lib/parser/pop3";
 import StreamManager from "lib/stream/network/manager";
@@ -29,7 +31,7 @@ import Pop3Transform from "lib/stream/transform/pop3";
     const streamImap = streamManager.createStream(
         ImapCommandMap,
         {
-            hostname: "Imap Host",
+            hostname: "",
             port: 993,
             secure: true,
             tls: {
@@ -40,7 +42,7 @@ import Pop3Transform from "lib/stream/transform/pop3";
     const streamPop3 = streamManager.createStream(
         Pop3CommandMap,
         {
-            hostname: "Pop3 Host",
+            hostname: "",
             port: 995,
             secure: true,
             tls: {
@@ -62,6 +64,15 @@ import Pop3Transform from "lib/stream/transform/pop3";
     await streamImap.connect();
     await streamPop3.connect();
 
+    const pop3Event = new SchemaEvent<Pop3CommandMap>();
+    pop3Event.on("retr", (id, result) => {
+        const retrResult = result as RetrResult;
+        console.log(`POP3 Event Name: retr`);
+        console.log(`Stream(${id}): Result = ${JSON.stringify(retrResult.schema, null, 2)}`);
+    });
+
+    streamPop3.event(pop3Event);
+
     const handlerImap = streamImap.handler();
     const handlerPop3 = streamPop3.handler();
     if (!handlerImap) {
@@ -69,7 +80,7 @@ import Pop3Transform from "lib/stream/transform/pop3";
         return;
     }
 
-    await handlerImap.command("login").execute("ID", "PASS");
+    await handlerImap.command("login").execute("", "");
     await handlerImap.command("select").execute("inbox");
 
 
@@ -78,8 +89,8 @@ import Pop3Transform from "lib/stream/transform/pop3";
         return;
     }
 
-    await handlerPop3.command("user").execute("USER");
-    await handlerPop3.command("pass").execute("PASS");
+    await handlerPop3.command("user").execute("");
+    await handlerPop3.command("pass").execute("");
     await handlerPop3.command("stat").execute();
     await handlerPop3.command("retr").execute(1);
 
