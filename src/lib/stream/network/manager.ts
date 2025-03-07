@@ -5,7 +5,7 @@ import { LogType } from "lib/logger/logger";
 import CommandTransform from "lib/stream/transform/index";
 import Parser from "lib/parser/parser";
 import { HostOption } from "lib/object/network/host-option";
-import { streamEvent } from "../event";
+import { streamEvent } from "lib/event/stream";
 
 type Pipe<T extends CommandMap> = {
     commandTransform: CommandTransform<T>;
