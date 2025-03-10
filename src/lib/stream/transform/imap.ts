@@ -1,11 +1,12 @@
-import { ImapCommandMap, SearchQuery } from "lib/command/imap";
+import { SearchQuery } from "lib/command/imap";
 import { QueueMessage } from "lib/command/queue";
-import CommandTransform from "lib/stream/transform";
+import { CommandTransform } from "lib/stream/transform";
 import { TransformCallback } from "stream";
 import { CommandArgs, CommandName } from "lib/type";
 import { CopyArgument, StoreArgument, FetchArgument } from "lib/command/imap/type";
+import { ImapCommandMap } from "lib/command";
 
-export default class ImapTransform extends CommandTransform<ImapCommandMap> {
+export class ImapTransform extends CommandTransform<ImapCommandMap> {
 
     private readonly imapCommand: ImapCommandMap;
     private readonly imapTag;

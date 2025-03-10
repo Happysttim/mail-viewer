@@ -1,4 +1,4 @@
-import { ImapCommandMap } from "lib/command/imap";
+import { ImapCommandMap } from "lib/command";
 import { CommandArgs, CommandName, CommandResult, Zod } from "lib/type";
 import { z, ZodObject } from "zod";
 import { ContentSchema, ErrorSchema } from "./common";

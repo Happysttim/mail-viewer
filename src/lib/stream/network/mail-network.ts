@@ -1,17 +1,17 @@
 import { connect as tcp_connect, Socket } from "node:net";
 import { connect as tls_connect, TLSSocket } from "node:tls";
 import { pipeline } from "node:stream";
-import CommandTransform from "lib/stream/transform";
+import { CommandTransform } from "lib/stream/transform";
 import { HostOption } from "lib/object/network/host-option";
 import Receiver from "lib/stream/receiver";
 import { CommandMap } from "lib/type";
-import Handler from "./handler";
-import Parser from "lib/parser/parser";
+import { Handler } from "./";
+import { Parser } from "lib/parser";
 import { streamEvent, StreamEvent } from "lib/event/stream";
 import { uid } from "uid";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import SchemaEvent from "lib/event/schema";
+import { SchemaEvent } from "lib/event";
 
 export enum SocketStatus {
     CONNECTING = "CONNECTING",
@@ -21,7 +21,7 @@ export enum SocketStatus {
 }
 type SocketLike = Socket | TLSSocket | undefined;
 
-export default class MailNetwork<T extends CommandMap> {
+export class MailNetwork<T extends CommandMap> {
 
     readonly hostOption: HostOption;
     readonly protocol: string;

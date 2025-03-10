@@ -1,4 +1,4 @@
-import Pop3CommandMap from "lib/command/pop3";
+import { Pop3CommandMap } from "lib/command";
 import { CommandArgs, CommandName, CommandResult, Zod } from "lib/type";
 import { z, ZodObject } from "zod";
 import { ContentSchema, ErrorSchema } from "./common";

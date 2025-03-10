@@ -3,7 +3,7 @@ import { z, ZodObject, ZodTypeAny } from "zod";
 
 type Zod = ZodObject<{[key: string]: ZodTypeAny}>;
 
-export default abstract class Parser<T extends CommandMap> {
+export abstract class Parser<T extends CommandMap> {
     
     protected commandResult!: CommandResult<T, CommandName<T>, z.infer<Zod>>;
     protected buffer: Buffer = Buffer.from([]);

@@ -1,13 +1,13 @@
-import Pop3CommandMap from "lib/command/pop3";
+import { Pop3CommandMap } from "lib/command";
 import { ListSchema, Pop3Result, RetrSchema, StatSchema, UidlSchema } from "lib/object/schema/pop3";
 import { z } from "zod";
-import Parser from "./parser";
+import { Parser } from "./";
 import { contentSchema } from "./common/contents";
 import { ErrorSchema } from "lib/object/schema/common";
 
 type CommandType = "SINGLE" | "MULTI" | "RETR" | "UNKNOWN";
 
-export default class Pop3Parser extends Parser<Pop3CommandMap> {
+export class Pop3Parser extends Parser<Pop3CommandMap> {
 
     private octets: number = 0;
     private isError: boolean = false;
@@ -68,7 +68,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
         }
 
         if (command === "uidl") {
-            const uidls = bufferUtf8.matchAll(/^(\d+)\s(.+)\r?\n/gm);
+            const uidls = bufferUtf8.matchAll(/(\d+)\s(.+)\r?\n/gm);
             const uidlList: {
                 seq: number,
                 uid: string,
@@ -101,7 +101,7 @@ export default class Pop3Parser extends Parser<Pop3CommandMap> {
             }[] = [];
 
             if (this.isError || !numbers) {
-                return schema.parse({
+                return ListSchema.safeParse({
                     error: true,
                 });
             }

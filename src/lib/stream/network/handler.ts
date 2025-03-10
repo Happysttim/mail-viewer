@@ -1,9 +1,9 @@
 import { CommandArgs, CommandMap, CommandName } from "lib/type";
-import CommandQueue from "lib/command/queue";
-import CommandTransform from "lib/stream/transform";
+import { CommandQueue } from "lib/command";
 import { StreamEvent } from "lib/event/stream";
+import { CommandTransform } from "lib/stream/transform";
 
-export default class Handler<T extends CommandMap> {
+export class Handler<T extends CommandMap> {
 
     readonly id: string;
 

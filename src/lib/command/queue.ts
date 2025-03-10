@@ -11,7 +11,7 @@ export type QueueMessage<T extends CommandMap> = {
 
 export type CommandCallback<T extends CommandMap> = ((message: QueueMessage<T>) => Promise<void>);
 
-export default class CommandQueue<T extends CommandMap> {
+export class CommandQueue<T extends CommandMap> {
 
     private commandQueue: QueueMessage<T>[] = [];
     private readonly tag = "CommandQueue";

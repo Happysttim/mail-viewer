@@ -1,13 +1,13 @@
-import { ImapCommandMap, SearchQuery } from "lib/command/imap";
-import Parser from "./parser";
+import { Parser } from "./";
 import { TypeOf } from "zod";
 import { CapabilitySchema, FetchResultSchema, FetchSchema, ImapResult, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/object/schema/imap";
 import { bodystructure } from "./common/structure";
 import { FetchArgument, FetchPeek, UIDArgument } from "lib/command/imap/type";
 import { contentSchema } from "./common/contents";
-import { Zod } from "lib/type";
 import { ErrorSchema } from "lib/object/schema/common";
 import { ListSchema } from "lib/object/schema/pop3";
+import { ImapCommandMap } from "lib/command";
+import { SearchQuery } from "lib/command/imap";
 
 const OK = (tag: string): string => `${tag} OK`;
 const NO = (tag: string): string => `${tag} NO`;
@@ -44,7 +44,7 @@ type FetchField<Type extends FetchRFC822> = {
         }
     );
 
-export default class ImapParser extends Parser<ImapCommandMap> {
+export class ImapParser extends Parser<ImapCommandMap> {
 
     readonly tag: string;
 

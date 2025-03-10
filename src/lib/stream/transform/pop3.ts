@@ -1,10 +1,10 @@
 import { QueueMessage } from "lib/command/queue";
-import CommandTransform from "lib/stream/transform";
+import { CommandTransform } from "lib/stream/transform";
 import { TransformCallback } from "stream";
-import Pop3CommandMap from "lib/command/pop3";
+import { Pop3CommandMap } from "lib/command";
 import { CommandArgs, CommandName } from "lib/type";
 
-export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
+export class Pop3Transform extends CommandTransform<Pop3CommandMap> {
 
     private readonly pop3CommandMap: Pop3CommandMap;
 
@@ -36,7 +36,7 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
                 case "quit":
                     return `QUIT`;
                 case "uidl":
-                    return `UIDL`;
+                    return `UIDL ${args[0] ?? ""}`;
                 default:
                     return ""
             }
@@ -67,7 +67,7 @@ export default class Pop3Transform extends CommandTransform<Pop3CommandMap> {
                 this.addResultStore(this.pop3CommandMap.stat());
             break;
             case "uidl":
-                this.addResultStore(this.pop3CommandMap.uidl());
+                this.addResultStore(this.pop3CommandMap.uidl(chunk.args[0]));
             break;
         }
 

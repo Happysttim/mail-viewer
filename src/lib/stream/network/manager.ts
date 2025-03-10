@@ -1,9 +1,9 @@
-import MailNetwork from "lib/stream/network/mail-network";
+import { MailNetwork } from "lib/stream/network";
 import { CommandMap } from "lib/type";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import CommandTransform from "lib/stream/transform/index";
-import Parser from "lib/parser/parser";
+import { CommandTransform } from "lib/stream/transform";
+import { Parser } from "lib/parser";
 import { HostOption } from "lib/object/network/host-option";
 import { streamEvent } from "lib/event/stream";
 
@@ -15,7 +15,7 @@ type Pipe<T extends CommandMap> = {
 type PipeMap<T extends CommandMap = CommandMap> = Map<new () => T, Pipe<T>>;
 type NetworkMap<T extends CommandMap = CommandMap> = Map<string, MailNetwork<T>>;
 
-export default class StreamManager {
+export class StreamManager {
 
     private readonly tag = "StreamManager";
 

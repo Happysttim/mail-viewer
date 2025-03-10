@@ -1,8 +1,8 @@
 import { Transform } from "node:stream";
 import { TransformCallback } from "stream";
 import { CommandMap, CommandName, CommandResult, Zod } from "lib/type";
-import CommandTransform from "./transform";
-import Parser from "lib/parser/parser";
+import { CommandTransform } from "./transform";
+import { Parser } from "lib/parser";
 import { z } from "zod";
 import { StreamEvent } from "lib/event/stream";
 
