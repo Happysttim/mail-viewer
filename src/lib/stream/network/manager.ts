@@ -55,7 +55,7 @@ export class StreamManager {
         return this.networkMap.get(id);
     }
 
-    async flushAllHandler() {
+    async flush() {
         for(const [_, value] of Object.entries(this.networkMap)) {
             const handler = value.handler();
             if (handler) {
