@@ -1,43 +1,32 @@
-import { CommandArgs, CommandMap, CommandName } from "lib/type";
+import { CommandArgs, CommandMap, CommandName, Result } from "lib/type";
 import { CommandQueue } from "lib/command";
-import { StreamEvent } from "lib/event/stream";
 import { CommandTransform } from "lib/stream/transform";
+import { commandEvent } from "lib/event";
 
 export class Handler<T extends CommandMap> {
-
-    readonly id: string;
 
     private promiseCommandQueue: Promise<void> = Promise.resolve();
     private commandQueue: CommandQueue<T> = new CommandQueue();
     private commandTransform: CommandTransform<T>;
-    private streamEvent: StreamEvent<T>;
 
     constructor(
-        id: string,
         commandTransform: CommandTransform<T>,
-        streamEvent: StreamEvent<T>,
     ) {
-        this.id = id;
         this.commandTransform = commandTransform;
-        this.streamEvent = streamEvent;
     }
 
-    command<
-        Name extends CommandName<T>
-    >(
-        name: Name,
-    ) {
+    command<Name extends CommandName<T>>(name: Name) {
         return {
-            execute: <Args extends CommandArgs<T, Name>>(...args: Args): Promise<void> => {
-                this.commandQueue.addQueue(name, ...args);
+            execute: <Args extends CommandArgs<T, Name>>(...args: Args): Promise<Result<T, Name>> => {
+                this.commandQueue.addQueue(commandEvent.generateCommandId(), name, ...args);
                 return new Promise((resolve, reject) => {
                     this.promiseCommandQueue = this.promiseCommandQueue.then(async () => {
                         const message = await this.commandQueue.removeQueue();
                         if (message && this.commandTransform.write(message)) {
-                            this.streamEvent.emit("command-handler-success", this.id, message.command, message.args);
-                            resolve();
+                            commandEvent.once<T, Name>(message.id, (error, result) => {
+                                error ? resolve(result) : reject();
+                            });
                         } else {
-                            this.streamEvent.emit("command-handler-fail", this.id);
                             reject();
                         }
                     });
