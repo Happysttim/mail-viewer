@@ -1,26 +1,26 @@
-import { CommandMap, CommandName, CommandResult } from "lib/type";
-import { z, ZodObject, ZodTypeAny } from "zod";
-
-type Zod = ZodObject<{[key: string]: ZodTypeAny}>;
+import { CommandMap, IdResult } from "lib/type";
+import { z } from "zod";
 
 export abstract class Parser<T extends CommandMap> {
     
-    protected commandResult!: CommandResult<T, CommandName<T>, z.infer<Zod>>;
+    protected idResult!: IdResult<T>;
     protected buffer: Buffer = Buffer.from([]);
 
-    get result(): CommandResult<T, CommandName<T>, z.infer<Zod>> {
-        return this.commandResult!!;
+    get result(): IdResult<T> {
+        return this.idResult!!;
     }
 
     checkResult(): boolean {
-        return this.commandResult !== undefined;
+        return this.idResult !== undefined;
     }
 
     schema(): boolean {
         if (this.checkResult()) {
-            const schema = this.receiveSchema();
-            if (schema) {
-                this.commandResult.schema = schema as typeof this.commandResult.schema;
+            const safeParse = this.receiveSchema();
+            if (safeParse) {
+                this.idResult.commandResult.schema = (safeParse.error ? {  
+                    error: true
+                } : safeParse.data);
                 return true;
             }
         }
@@ -28,17 +28,17 @@ export abstract class Parser<T extends CommandMap> {
     }
 
     abstract eof(): boolean;
-    protected abstract receiveSchema(): typeof this.commandResult.schema | undefined;
+    protected abstract receiveSchema(): z.SafeParseReturnType<typeof this.idResult.commandResult.schema, typeof this.idResult.commandResult.schema> | undefined;
     
     concatBuffer(buffer: Buffer): void {
         this.buffer = Buffer.concat([this.buffer, buffer]);
     }
 
-    flushAndChange(result: CommandResult<T, CommandName<T>, z.infer<Zod>>): void {
+    flushAndChange(result: IdResult<T>): void {
         this.buffer.fill(0);
         this.buffer = Buffer.from([]);
 
-        this.commandResult = result;
+        this.idResult = result;
     }
 
 }
