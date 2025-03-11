@@ -1,9 +1,10 @@
 import { Pop3CommandMap } from "lib/command";
-import { ListSchema, Pop3Result, RetrSchema, StatSchema, UidlSchema } from "lib/object/schema/pop3";
+import { ListSchema, RetrSchema, StatSchema, UidlSchema } from "lib/schema/pop3";
 import { z } from "zod";
 import { Parser } from "./";
 import { contentSchema } from "./common/contents";
-import { ErrorSchema } from "lib/object/schema/common";
+import { ErrorSchema } from "lib/schema/common";
+import { IdResult } from "lib/type";
 
 type CommandType = "SINGLE" | "MULTI" | "RETR" | "UNKNOWN";
 
@@ -36,12 +37,12 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
         return false;
     }
 
-    protected receiveSchema(): typeof this.commandResult.schema | undefined {
+    protected receiveSchema(): z.SafeParseReturnType<typeof this.idResult.commandResult.schema, typeof this.idResult.commandResult.schema> | undefined {
         if (!this.eof()) {
             return undefined;
         }
 
-        const { command, args, schema } = this.commandResult;
+        const { command, args } = this.idResult.commandResult;
         const bufferUtf8 = this.buffer.toString("utf8");
         
         if (["user", "pass", "dele"].includes(command)) {
@@ -175,7 +176,10 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
                 }
             }
 
-            return retrSchema;
+            return RetrSchema.safeParse({
+                error: false,
+                ...retrSchema
+            });
         }
 
         return undefined;
@@ -188,7 +192,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
         }
     }
 
-    flushAndChange(pop3Result: Pop3Result) {
+    flushAndChange(pop3Result: IdResult<Pop3CommandMap>) {
         super.flushAndChange(pop3Result);
         this.firstLine = "";
         this.octets = 0;
@@ -197,8 +201,8 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
     }
 
     private commandType(): CommandType {
-        const command = this.commandResult.command;
-        const args = this.commandResult.args;
+        const command = this.idResult.commandResult.command;
+        const args = this.idResult.commandResult.args;
 
         if (["user", "pass", "quit", "stat", "dele"].includes(command)) {
             return "SINGLE";
@@ -225,7 +229,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
     }
 
     private pickOctets() {
-        const command = this.commandResult.command;
+        const command = this.idResult.commandResult.command;
         if (
             (
                 command === "stat" || 
