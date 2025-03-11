@@ -1,38 +1,29 @@
 import { Transform } from "node:stream";
 import { TransformCallback } from "stream";
-import { CommandMap, CommandName, CommandResult, Zod } from "lib/type";
+import { CommandMap, IdResult } from "lib/type";
 import { CommandTransform } from "./transform";
 import { Parser } from "lib/parser";
-import { z } from "zod";
-import { StreamEvent } from "lib/event/stream";
+import { commandEvent } from "lib/event";
 
 type EOFType = "UNDEFINED" | "EOF" | "NOT_EOF";
 
 export default class Receiver<T extends CommandMap> extends Transform {
 
-    readonly id: string;
-
     private readonly tag = "Receiver";
     
     private commandTransform: CommandTransform<T>;
     private parser: Parser<T>;
-    private streamEvent: StreamEvent<T>;
     private promiseCommandTransform: Promise<void> = Promise.resolve();
     private ignoreWelcome = false;
     private usingSchema = false;
-    private previousCommand = "";
 
     constructor(
-        id: string,
         commandTransform: CommandTransform<T>,
         parser: Parser<T>,
-        streamEvent: StreamEvent<T>,
     ) {
         super();
-        this.id = id;
         this.commandTransform = commandTransform;
         this.parser = parser;
-        this.streamEvent = streamEvent;
     }
 
     _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback): void {
@@ -52,11 +43,8 @@ export default class Receiver<T extends CommandMap> extends Transform {
             }
 
             if (this.parserEOF() === "EOF") {
-                if (this.parser.schema()) {
-                    this.streamEvent.emit("command-receiver-schema", this.id, this.parser.result);
-                } else {
-                    this.streamEvent.emit("command-receiver-schema-error", this.id, this.parser.result);
-                }
+                const error = this.parser.schema();
+                commandEvent.emit(this.parser.result.id, error, this.parser.result.commandResult);
                 this.usingSchema = true;
             }
 
@@ -68,25 +56,23 @@ export default class Receiver<T extends CommandMap> extends Transform {
         callback();
     }
 
-    private parserFlushAndChange(schema: CommandResult<T, CommandName<T>, z.infer<Zod>> | undefined, chunk: Buffer): boolean {
-        if (schema) {
-            this.parser.flushAndChange(schema);
+    private parserFlushAndChange(result: IdResult<T> | undefined, chunk: Buffer): boolean {
+        if (result) {
+            this.parser.flushAndChange(result);
             this.parser.concatBuffer(chunk);
-
-            this.previousCommand = schema.command.toString(); 
             return true;
         }
 
         return false;
     }
 
-    private concatChunk(chunk: Buffer, schema?: CommandResult<T, CommandName<T>, z.infer<Zod>>) {
+    private concatChunk(chunk: Buffer, result?: IdResult<T>) {
         if (this.parser.checkResult()) {
             this.parser.concatBuffer(chunk);
             return;
         }
 
-        this.parserFlushAndChange(schema, chunk);
+        this.parserFlushAndChange(result, chunk);
     }
 
     private parserEOF(): EOFType {
