@@ -1,4 +1,4 @@
-import { BodyStructureSchema } from "lib/object/schema/imap";
+import { BodyStructureSchema } from "lib/schema/imap";
 import { z } from "zod";
 
 type BodyStructure = z.infer<typeof BodyStructureSchema>;
