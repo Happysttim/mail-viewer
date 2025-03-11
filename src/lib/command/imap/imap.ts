@@ -1,8 +1,8 @@
-import { CapabilityResult, CapabilitySchema, createImapResult, ExpungeResult, FetchResult, FetchSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchErrorSchema, SearchResult, SelectResult, SelectSchema, StandardFlag, StatusResult, StatusSchema, StoreResult, UIDErrorResultSchema, UidResult } from "lib/object/schema/imap";
+import { CapabilityResult, CapabilitySchema, createImapResult, ExpungeResult, FetchResult, FetchSchema, IdleResult, ListResult, ListSchema, LoginResult, LogoutResult, NoopResult, SearchErrorSchema, SearchResult, SelectResult, SelectSchema, StandardFlag, StatusResult, StatusSchema, StoreResult, UIDErrorResultSchema, UidResult } from "lib/schema/imap";
 import { CommandMap } from "lib/type/";
 import { SearchQuery } from "./search";
 import { FetchPeek, Range, UIDArgument, UIDType } from "./type";
-import { ErrorSchema } from "lib/object/schema/common";
+import { ErrorSchema } from "lib/schema/common";
 
 export class ImapCommandMap implements CommandMap {
     readonly __protocol: string = "IMAP";
