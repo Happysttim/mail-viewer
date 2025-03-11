@@ -46,28 +46,28 @@ export class Pop3Transform extends CommandTransform<Pop3CommandMap> {
         this.addCommand(this.transformCommand(chunk.command, chunk.args));
         switch (chunk.command) {
             case "user":
-                this.addResultStore(this.pop3CommandMap.user(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.user(chunk.args[0]));
             break;
             case "pass":
-                this.addResultStore(this.pop3CommandMap.pass(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.pass(chunk.args[0]));
             break;
             case "list":
-                this.addResultStore(this.pop3CommandMap.list(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.list(chunk.args[0]));
             break;
             case "dele":
-                this.addResultStore(this.pop3CommandMap.dele(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.dele(chunk.args[0]));
             break;
             case "quit":
-                this.addResultStore(this.pop3CommandMap.quit());
+                this.addResultStore(chunk.id, this.pop3CommandMap.quit());
             break;
             case "retr":
-                this.addResultStore(this.pop3CommandMap.retr(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.retr(chunk.args[0]));
             break;
             case "stat":
-                this.addResultStore(this.pop3CommandMap.stat());
+                this.addResultStore(chunk.id, this.pop3CommandMap.stat());
             break;
             case "uidl":
-                this.addResultStore(this.pop3CommandMap.uidl(chunk.args[0]));
+                this.addResultStore(chunk.id, this.pop3CommandMap.uidl(chunk.args[0]));
             break;
         }
 
