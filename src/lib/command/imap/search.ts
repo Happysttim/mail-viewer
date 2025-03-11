@@ -1,3 +1,5 @@
+import { Range } from "./type";
+
 export function createQuery(): SearchQuery {
     return new SearchQuery();
 }
@@ -114,6 +116,11 @@ export class SearchQuery {
 
     not(query: SearchQuery): SearchQuery {
         this.query += `NOT ${query.queryString} `;
+        return this;
+    }
+
+    range(range: Range): SearchQuery {
+        this.query += `${range} `;
         return this;
     }
 }
