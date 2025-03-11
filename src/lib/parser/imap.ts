@@ -1,13 +1,14 @@
 import { Parser } from "./";
-import { TypeOf } from "zod";
-import { CapabilitySchema, FetchResultSchema, FetchSchema, ImapResult, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/object/schema/imap";
+import { TypeOf, z } from "zod";
+import { CapabilitySchema, FetchResultSchema, FetchSchema, ImapResult, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/schema/imap";
 import { bodystructure } from "./common/structure";
 import { FetchArgument, FetchPeek, UIDArgument } from "lib/command/imap/type";
 import { contentSchema } from "./common/contents";
-import { ErrorSchema } from "lib/object/schema/common";
-import { ListSchema } from "lib/object/schema/pop3";
+import { ErrorSchema } from "lib/schema/common";
+import { ListSchema } from "lib/schema/pop3";
 import { ImapCommandMap } from "lib/command";
 import { SearchQuery } from "lib/command/imap";
+import { IdResult } from "lib/type";
 
 const OK = (tag: string): string => `${tag} OK`;
 const NO = (tag: string): string => `${tag} NO`;
@@ -60,12 +61,12 @@ export class ImapParser extends Parser<ImapCommandMap> {
         return expr.test(bufferUtf);
     }
 
-    protected receiveSchema(): typeof this.commandResult.schema | undefined {
+    protected receiveSchema(): z.SafeParseReturnType<typeof this.idResult.commandResult.schema, typeof this.idResult.commandResult.schema> | undefined {
         if (!this.eof()) {
             return undefined;
         }
 
-        const { command, args, schema } = this.commandResult;
+        const { command, args } = this.idResult.commandResult;
         const bufferUtf8 = this.buffer.toString("utf8");
         const isError = ["NO", "BAD", "UNKNOWN"].includes(this.resultType());
 
@@ -236,7 +237,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
     }
 
     search(bufferUtf8: string): TypeOf<typeof SearchSchema> | undefined {
-        const { args } = this.commandResult;
+        const { args } = this.idResult.commandResult;
 
         const search = [...bufferUtf8.matchAll(/^\W\sSEARCH\s([\d+\s]+(?:[\r\n]))/gm)];
         const query = args[1] as SearchQuery;
@@ -245,7 +246,6 @@ export class ImapParser extends Parser<ImapCommandMap> {
             const result = (search[0][1] ?? "").split(" ");
 
             return SearchSchema.parse({
-                range: args[0],
                 query: query.queryString,
                 count: result.length,
                 searchResult: result.map<Number>(v => parseInt(v)),
@@ -253,7 +253,6 @@ export class ImapParser extends Parser<ImapCommandMap> {
         }
 
         return SearchSchema.parse({
-            range: args[0],
             query: query.queryString,
             count: 0,
             searchResult: [],
@@ -261,7 +260,6 @@ export class ImapParser extends Parser<ImapCommandMap> {
     }
 
     fetch(bufferUtf8: string, peek: FetchPeek): TypeOf<typeof FetchResultSchema> | undefined {
-        const { args } = this.commandResult;
         const fields = (() => {
             const fields = [...
                 bufferUtf8.matchAll(
@@ -279,12 +277,24 @@ export class ImapParser extends Parser<ImapCommandMap> {
                 return [];
             }
 
-            if (["FLAGS", "INTERNALDATE", "BODYSTRUCTURE"].includes(peek)) {
+            if (["INTERNALDATE", "BODYSTRUCTURE"].includes(peek)) {
                 return fields.map<FetchField<"NO_RFC">>(v => {
                     return {
                         fetchType: "NO_RFC",
                         fetchID: parseInt(v[1]),
                         data: v[2],
+                        fetchUID: v[3] ? parseInt(v[3]) : undefined,
+                    }
+                });
+            }
+
+            if (peek === "FLAGS") {
+                return fields.map<FetchField<"NO_RFC">>(v => {
+                    const flags = v[2].match(/\((.+)\)/);
+                    return {
+                        fetchType: "NO_RFC",
+                        fetchID: parseInt(v[1]),
+                        data: flags ? flags[1] : "",
                         fetchUID: v[3] ? parseInt(v[3]) : undefined,
                     }
                 });
@@ -439,7 +449,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
         return header;
     }
 
-    flushAndChange(result: ImapResult): void {
+    flushAndChange(result: IdResult<ImapCommandMap>): void {
         super.flushAndChange(result);
     }
 
