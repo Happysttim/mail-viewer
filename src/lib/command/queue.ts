@@ -1,9 +1,8 @@
 import { CommandArgs, CommandMap, CommandName } from "lib/type";
-import log from "lib/logger";
-import { LogType } from "lib/logger/logger";
 
 export type QueueMessage<T extends CommandMap> = {
     [P in CommandName<T>]: {
+        id: string;
         command: P;
         args: CommandArgs<T, P>;
     }
@@ -14,10 +13,10 @@ export type CommandCallback<T extends CommandMap> = ((message: QueueMessage<T>) 
 export class CommandQueue<T extends CommandMap> {
 
     private commandQueue: QueueMessage<T>[] = [];
-    private readonly tag = "CommandQueue";
 
-    addQueue<Name extends CommandName<T>>(command: Name, ...args: CommandArgs<T, Name>) {
+    addQueue<Name extends CommandName<T>>(id: string, command: Name, ...args: CommandArgs<T, Name>) {
         const message: QueueMessage<T> = {
+            id,
             command,
             args
         };
@@ -28,13 +27,6 @@ export class CommandQueue<T extends CommandMap> {
         const message = this.commandQueue.shift();
 
         if (message === undefined) {
-            log(
-                {
-                    type: LogType.ERROR,
-                    tag: this.tag,
-                    context: "커멘드 큐의 요소가 없습니다.",
-                }
-            );
             return undefined;
         }
 
