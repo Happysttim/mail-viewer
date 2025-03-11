@@ -1,58 +1,52 @@
 import { MailNetwork } from "lib/stream/network";
-import { CommandMap } from "lib/type";
-import log from "lib/logger";
-import { LogType } from "lib/logger/logger";
+import { CommandMap, HostOption } from "lib/type";
 import { CommandTransform } from "lib/stream/transform";
 import { Parser } from "lib/parser";
-import { HostOption } from "lib/object/network/host-option";
-import { streamEvent } from "lib/event/stream";
+import { uid } from "uid";
 
 type Pipe<T extends CommandMap> = {
     commandTransform: CommandTransform<T>;
     parser: Parser<T>;
-    prefix: string;
 }
 type PipeMap<T extends CommandMap = CommandMap> = Map<new () => T, Pipe<T>>;
 type NetworkMap<T extends CommandMap = CommandMap> = Map<string, MailNetwork<T>>;
 
 export class StreamManager {
 
-    private readonly tag = "StreamManager";
-
     private pipeMap: PipeMap<any> = new Map();
     private networkMap: NetworkMap<any> = new Map();
-
-    constructor() {
-        this.initEvent();
-    }
 
     register<T extends CommandMap>(commandMap: new () => T, pipe: Pipe<T>) {
         this.pipeMap.set(commandMap, pipe);
     }
 
-    createStream<T extends CommandMap>(commandMap: new () => T, hostOption: HostOption) {
+    async createStream<T extends CommandMap>(commandMap: new () => T, hostOption: HostOption, id?: string): Promise<MailNetwork<T> | undefined> {
         const pipe = this.pipeMap.get(commandMap);
-        const command = new commandMap();
         if (!pipe) {
-            streamEvent.emit("unknown-command-map");
             return undefined;
         }
+        const command = new commandMap();
+        const streamId = id ?? await this.generateStreamID();
 
         const stream = new MailNetwork<T>(
-            command.__protocol,
-            pipe.prefix,
-            hostOption,
+            streamId,
             command,
             pipe.commandTransform,
-            pipe.parser
+            pipe.parser,
+            hostOption,
         );
 
-        this.networkMap.set(stream.id, stream);
+        this.networkMap.set(streamId, stream);
         return stream;
     }
 
-    stream(id: string): MailNetwork<any> | undefined {
+    stream<T extends CommandMap>(id: string): MailNetwork<T> | undefined {
         return this.networkMap.get(id);
+    }
+
+    remove(id: string): boolean {
+        this.networkMap.get(id)?.disconnect();
+        return this.networkMap.delete(id);
     }
 
     async flush() {
@@ -64,80 +58,10 @@ export class StreamManager {
         };
     }
 
-    dumpNetworkUIDLog() {
-        log(
-            {
-                tag: this.tag,
-                type: LogType.DEBUG,
-                context: "-----------------------------------START NETWORK UID LOG"
-            }
-        );
-
-        Object.entries(this.networkMap).forEach(value => {
-            log(
-                {
-                    tag: this.tag,
-                    type: LogType.DEBUG,
-                    context: `Network UID: ${value[0]}`
-                }
-            );
-        });
-
-        log(
-            {
-                tag: this.tag,
-                type: LogType.DEBUG,
-                context: "-----------------------------------END LOG"
-            }
-        );
-    }
-
-    private initEvent() {
-        streamEvent.on("socket-status", (id, previous, now) => {
-            log(
-                {
-                    tag: this.tag,
-                    type: LogType.INFO,
-                    context: `Detected socket(${id}) status: ${previous} -> ${now}`
-                }
-            );
-
-            if (now === "DISCONNECT") {
-                this.networkMap.delete(id);
-            }
-        });
-
-        streamEvent.on("socket-error", (id, cause) => {
-            log(
-                {
-                    tag: this.tag,
-                    type: LogType.INFO,
-                    context: `Socket(${id}) error cause: ${cause}`
-                }
-            );
-        });
-
-        streamEvent.on("create-stream", (protocol, hostOption, id) => {
-            log(
-                {
-                    tag: this.tag,
-                    type: LogType.INFO,
-                    context: `Socket(protocol: ${protocol}, host: ${hostOption}, id: ${id}) stream is created`
-                }
-            );
-        });
-
-        streamEvent.on("stream-pipeline-error", (id, err) => {
-            if (err) {
-                log(
-                    {
-                        tag: this.tag,
-                        type: LogType.ERROR,
-                        context: `Stream(${id}) pipeline error, cause: ${err}`,
-                    }
-                );
-            }
-        });
+    private async generateStreamID(): Promise<string> {
+        let generate: string = "";
+        while(this.networkMap.get(generate = uid(16))){}
+        return generate;
     }
 
 }
