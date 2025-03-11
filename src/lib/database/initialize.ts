@@ -1,5 +1,5 @@
 import Database from "better-sqlite3-multiple-ciphers";
-import { User } from "./schema";
+import { UserDTO } from "./dto";
 import fs from "node:fs";
 import { createHash } from "node:crypto";
 
@@ -18,13 +18,13 @@ function deleteUserDatabase(dbName: string): boolean {
     return false;
 }
 
-async function createUserDatabase(user: User) {
+async function createUserDatabase(user: UserDTO) {
     mkdir("./data/users/");
     await withDatabase(`./data/users/${user.id}.db`, async database => {
         database.pragma(`key='${user.password}'`);
         database.pragma("foreign_key=1");
         database.exec(`
-            CREATE TABLE IF NOT EXISTS AddressTable (
+            CREATE TABLE IF NOT EXISTS StreamTable (
                 streamId TEXT NOT NULL PRIMARY KEY,
                 mailId TEXT NOT NULL,
                 mailPassword TEXT NOT NULL,
@@ -43,7 +43,7 @@ async function createUserDatabase(user: User) {
                 fromAddress TEXT NOT NULL,
                 subject TEXT NOT NULL,
                 CONSTRAINT streamId_fk FOREIGN KEY(streamId)
-                REFERENCES AddressTable(streamId)
+                REFERENCES StreamTable(streamId)
                 ON DELETE CASCADE
             )
         `);
@@ -71,7 +71,7 @@ export async function createUserTable() {
 }
 
 
-export async function addUser(user: User) {
+export async function addUser(user: UserDTO) {
     await withDatabase("./data/user.db", async database => {
         database.prepare("INSERT INTO UserTable (id, password) VALUES (?, ?)").run(
             user.id, 
@@ -84,7 +84,7 @@ export async function addUser(user: User) {
 export async function deleteUser(id: string) {
     mkdir("./data/");
     await withDatabase("./data/user.db", async database => {
-        database.prepare("DELETE FROM UserTable WHERE id = ?").run(id);
+        database.prepare("DELETE FROM UserTable WHERE id=?").run(id);
         deleteUserDatabase(id);
     });
 }
