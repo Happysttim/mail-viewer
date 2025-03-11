@@ -1,4 +1,4 @@
-import { ContentHeaderSchema, ContentSchema, } from "lib/object/schema/common";
+import { ContentHeaderSchema, ContentSchema } from "lib/schema/common";
 import { z } from "zod";
 
 type Parameter = Record<string, string | undefined>; 
