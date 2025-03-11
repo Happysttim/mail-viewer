@@ -1,15 +1,12 @@
-import { Transform } from "node:stream";
-import { TransformCallback } from "stream";
-import { CommandArgs, CommandMap, CommandName, CommandResult, Zod } from "lib/type";
+import { Transform, TransformCallback } from "node:stream";
+import { CommandArgs, CommandMap, CommandName, CommandResult, IdResult, Zod } from "lib/type";
 import { QueueMessage } from "lib/command/queue";
-import log from "lib/logger";
-import { LogType } from "lib/logger/logger";
 import { z } from "zod";
 
-export class CommandTransform<T extends CommandMap = CommandMap> extends Transform {
+export class CommandTransform<T extends CommandMap> extends Transform {
 
     private commands: string[] = [];
-    private resultStore: CommandResult<T, CommandName<T>, z.infer<Zod>>[] = [];
+    private resultStore: IdResult<T>[] = [];
 
     constructor() {
         super(
@@ -39,11 +36,14 @@ export class CommandTransform<T extends CommandMap = CommandMap> extends Transfo
         this.commands.push(command);
     }
 
-    protected addResultStore(schema: CommandResult<T, CommandName<T>, z.infer<Zod>>) {
-        this.resultStore.push(schema);
+    protected addResultStore<Command extends CommandName<T>>(id: string, commandResult: CommandResult<T, Command, z.infer<Zod>>) {
+        this.resultStore.push({
+            id,
+            commandResult
+        });
     }
 
-    forgetResult(): CommandResult<T, CommandName<T>, z.infer<Zod>> | undefined {
+    forgetResult(): IdResult<T> | undefined {
         return this.resultStore.shift();
     }
 
@@ -54,32 +54,6 @@ export class CommandTransform<T extends CommandMap = CommandMap> extends Transfo
         }
 
         return "";
-    }
-
-    protected dumpCommands(tag: string) {
-        log(
-            {
-                tag,
-                type: LogType.DEBUG,
-                context: `--------------------------------------------COMMAND DUMP`,
-            }
-        );
-        this.commands.forEach(command => {
-            log(
-                {
-                    tag,
-                    type: LogType.DEBUG,
-                    context: command,
-                }
-            );
-        });
-        log(
-            {
-                tag,
-                type: LogType.DEBUG,
-                context: `--------------------------------------------END`,
-            }
-        );
     }
 
     _transform(chunk: QueueMessage<T>, encoding: BufferEncoding, callback: TransformCallback): void {
