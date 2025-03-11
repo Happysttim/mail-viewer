@@ -76,43 +76,43 @@ export class ImapTransform extends CommandTransform<ImapCommandMap> {
         this.addCommand(this.transformCommand(chunk.command, chunk.args));
         switch (chunk.command) {
             case "capability":
-                this.addResultStore(this.imapCommand.capability());
+                this.addResultStore(chunk.id, this.imapCommand.capability());
                 break;
             case "expunge":
-                this.addResultStore(this.imapCommand.expunge());
+                this.addResultStore(chunk.id, this.imapCommand.expunge());
                 break;
             case "fetch":
-                this.addResultStore(this.imapCommand.fetch(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.fetch(chunk.args[0], chunk.args[1]));
                 break;
             case "idle":
-                this.addResultStore(this.imapCommand.idle());
+                this.addResultStore(chunk.id, this.imapCommand.idle());
                 break;
             case "list":
-                this.addResultStore(this.imapCommand.list(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.list(chunk.args[0], chunk.args[1]));
                 break;
             case "login":
-                this.addResultStore(this.imapCommand.login(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.login(chunk.args[0], chunk.args[1]));
                 break;
             case "logout":
-                this.addResultStore(this.imapCommand.logout());
+                this.addResultStore(chunk.id, this.imapCommand.logout());
                 break;
             case "noop":
-                this.addResultStore(this.imapCommand.noop());
+                this.addResultStore(chunk.id, this.imapCommand.noop());
                 break;
             case "search":
-                this.addResultStore(this.imapCommand.search(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.search(chunk.args[0], chunk.args[1]));
                 break;
             case "select":
-                this.addResultStore(this.imapCommand.select(chunk.args[0]));
+                this.addResultStore(chunk.id, this.imapCommand.select(chunk.args[0]));
                 break;
             case "status":
-                this.addResultStore(this.imapCommand.status(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.status(chunk.args[0], chunk.args[1]));
                 break;
             case "store":
-                this.addResultStore(this.imapCommand.store(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.store(chunk.args[0], chunk.args[1]));
                 break;
             case "uid":
-                this.addResultStore(this.imapCommand.uid(chunk.args[0], chunk.args[1]));
+                this.addResultStore(chunk.id, this.imapCommand.uid(chunk.args[0], chunk.args[1]));
                 break;
         }
 
