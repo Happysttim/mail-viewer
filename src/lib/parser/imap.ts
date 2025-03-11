@@ -1,6 +1,6 @@
 import { Parser } from "./";
 import { TypeOf, z } from "zod";
-import { CapabilitySchema, FetchResultSchema, FetchSchema, ImapResult, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/schema/imap";
+import { CapabilitySchema, FetchResultSchema, FetchSchema, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/schema/imap";
 import { bodystructure } from "./common/structure";
 import { FetchArgument, FetchPeek, UIDArgument } from "lib/command/imap/type";
 import { contentSchema } from "./common/contents";
