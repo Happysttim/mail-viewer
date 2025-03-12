@@ -58,4 +58,4 @@ export class ImapCommandMap implements CommandMap {
     logout(): LogoutResult {
         return createImapResult("logout", [], ErrorSchema);
     }
-};
+}

@@ -7,15 +7,15 @@ export type Flag = "\\Seen" | "\\Answered" | "\\Flagged" | "\\Deleted" | "\\Draf
 export type FetchArgument = {
     range: Range;
     peek: FetchPeek;
-}
+};
 export type StoreArgument = {
     operation: FlagOperation;
     flag: Flag;
-}
+};
 export type CopyArgument = {
     range: Range;
     mailBox: string;
-}
+};
 export type UIDArgument = "FETCH" | "STORE" | "SEARCH" | "COPY" | "EXPUNGE" | "MOVE";
 export type UIDType<Arg extends UIDArgument> = 
     Arg extends "FETCH" ? FetchArgument : 
