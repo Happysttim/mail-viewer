@@ -11,13 +11,13 @@
         "resolveJsonModule": true,
         "types": ["node"],
         "paths": {
-            "lib": ["lib/*"],
-            "render": ["render/*"],
+            "lib/*": ["lib/*"],
+            "render/*": ["render/*"],
         },
         "baseUrl": ".",
         "outDir": "./build"
     },
-    "include": ["**/*.ts", "**/*.tsx"],
+    "include": ["**/*.ts", "**/*.tsx", "eslint.config.mjs"],
     "exclude": [
         "*.config.ts",
     ]
