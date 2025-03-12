@@ -62,7 +62,7 @@ const mailPassword = process.env.MAIL_PASSWORD ?? "";
             port: imapPort,
             secure: true,
             tls: {
-                rejectUnauthorized: true,
+                rejectUnauthorized: false,
             }
         }
     );
@@ -74,7 +74,7 @@ const mailPassword = process.env.MAIL_PASSWORD ?? "";
             port: pop3Port,
             secure: true,
             tls: {
-                rejectUnauthorized: true,
+                rejectUnauthorized: false,
             }
         }
     );
@@ -91,7 +91,7 @@ const mailPassword = process.env.MAIL_PASSWORD ?? "";
         mailId: mailID,
         mailPassword: mailPassword,
         host: imapHost,
-        port: 993,
+        port: imapPort,
     });
 
     await userService.createStream({
@@ -100,7 +100,7 @@ const mailPassword = process.env.MAIL_PASSWORD ?? "";
         mailId: mailID,
         mailPassword: mailPassword,
         host: pop3Host,
-        port: 995,
+        port: pop3Port,
     });
 
     // IMAP, POP3 메일 서비스 받아오기
