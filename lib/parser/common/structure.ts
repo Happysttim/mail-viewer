@@ -7,8 +7,7 @@ const BODYSTRUCTURE_EXPR = /((text|image|application|audio|example|font|model|vi
 const MULTIPARTS_EXPR = /((mixed|alternative|related|form\-data|signed|encrypted|digest|paraellel|report|byteranges)) \(boundary (.+?)\) (.+?|NIL) (.+?|NIL) (.+?|NIL)?(?: \((.+?)\))?(?: (.+?|NIL))?\)/g;
 
 export function bodystructure(str: string): BodyStructure {
-    const structure: Partial<BodyStructure> = {};
-    str = str.replaceAll(`"`, "");
+    str = str.replaceAll("\"", "");
 
     const structMatcher = [...str.matchAll(BODYSTRUCTURE_EXPR)];
     const multipartMatcher = [...str.matchAll(MULTIPARTS_EXPR)];
@@ -36,7 +35,7 @@ function bodyParser(struct: RegExpExecArray): BodyStructure {
                 parameters.push({
                     key: subTypes[i],
                     value: subTypes[i + 1],
-                })
+                });
             }
 
             structure.parameters = parameters;
@@ -66,7 +65,7 @@ function bodyParser(struct: RegExpExecArray): BodyStructure {
                     parameters.push({
                         key: dispositions[i],
                         value: dispositions[i + 1],
-                    })
+                    });
                 }
 
                 structure.contentDisposition = {

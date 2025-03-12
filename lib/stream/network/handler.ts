@@ -24,7 +24,11 @@ export class Handler<T extends CommandMap> {
                         const message = await this.commandQueue.removeQueue();
                         if (message && this.commandTransform.write(message)) {
                             commandEvent.once<T, Name>(message.id, (error, result) => {
-                                error ? resolve(result) : reject();
+                                if (error) {
+                                    resolve(result);
+                                } else {
+                                    reject();
+                                }
                             });
                         } else {
                             reject();

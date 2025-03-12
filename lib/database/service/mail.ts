@@ -14,7 +14,7 @@ export class MailService {
     }
 
     async newMail(mail: MailDTO): Promise<boolean> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
                 INSERT INTO MailTable (
@@ -32,7 +32,7 @@ export class MailService {
                 mail.date,
                 mail.fromAddress,
                 mail.subject
-            )
+            );
         });
 
         if (result) {
@@ -43,14 +43,14 @@ export class MailService {
     }
 
     async removeAll() {
-        await withDatabase(this.path, async database => {
+        await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             database.exec("DELETE FROM MailTable");
         });
     }
 
     async remove(mailId: number): Promise<boolean> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare("DELETE FROM MailTable WHERE mailId=?").run(mailId);
         });
@@ -63,7 +63,7 @@ export class MailService {
     }
 
     async all(): Promise<MailDTO[]> {
-        const mails = await withDatabase(this.path, async database => {
+        const mails = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], MailDTO>(`
                 SELECT
@@ -85,9 +85,9 @@ export class MailService {
     }
 
     async range(mailIds: number[]): Promise<MailDTO[]> {
-        const mails = await withDatabase(this.path, async database => {
+        const mails = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return mailIds.map<MailDTO | undefined>(mailId => {
+            return mailIds.map<MailDTO | undefined>((mailId) => {
                 return database.prepare<unknown[], MailDTO>(`
                     SELECT
                         mailId,
@@ -102,14 +102,14 @@ export class MailService {
                     WHERE
                         mailId=?
                 `).get(mailId);
-            }).filter<MailDTO>(mail => mail !== undefined);
+            }).filter<MailDTO>((mail) => mail !== undefined);
         });
         
         return mails ?? [];
     }
 
     async page(page: number, limit: number): Promise<MailDTO[]> {
-        const mails = await withDatabase(this.path, async database => {
+        const mails = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], MailDTO>(`
                 SELECT
@@ -139,7 +139,7 @@ export class MailService {
     }
 
     async mail(mailId: number): Promise<MailDTO | undefined> {
-        return await withDatabase(this.path, async database => {
+        return await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], MailDTO>(`
                 SELECT
@@ -159,19 +159,19 @@ export class MailService {
     }
 
     async readAll(): Promise<boolean> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return database.prepare(`UPDATE MailTable SET isSeen=TRUE FROM streamId=? AND isSeen=FALSE`).run(this.stream.streamId);
+            return database.prepare("UPDATE MailTable SET isSeen=TRUE FROM streamId=? AND isSeen=FALSE").run(this.stream.streamId);
         });
         
         return result ? result.changes > 0 : false;
     }
 
     async readRange(mailIds: number[]): Promise<number> {
-        const mails = await withDatabase(this.path, async database => {
+        const mails = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return mailIds.filter(mailId => {
-                const result = database.prepare(`UPDATE MailTable SET isSeen=TRUE FROM mailId=? AND isSeen=FALSE`).run(mailId);
+            return mailIds.filter((mailId) => {
+                const result = database.prepare("UPDATE MailTable SET isSeen=TRUE FROM mailId=? AND isSeen=FALSE").run(mailId);
                 if (result) {
                     return result.changes > 0;
                 }
@@ -184,9 +184,9 @@ export class MailService {
     }
 
     async read(mailId: number): Promise<number> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return database.prepare(`UPDATE MailTable SET isSeen=TRUE FROM mailId=?`).run(mailId);
+            return database.prepare("UPDATE MailTable SET isSeen=TRUE FROM mailId=?").run(mailId);
         });
 
         return result ? result.changes : 0;

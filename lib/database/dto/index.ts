@@ -1,7 +1,7 @@
 export type UserDTO = {
     id: string;
     password: string;
-}
+};
 
 export type StreamDTO = {
     streamId: string;
@@ -10,7 +10,7 @@ export type StreamDTO = {
     protocol: string;
     host: string;
     port: number;
-}
+};
 
 export type MailDTO = {
     mailId: number,
@@ -20,4 +20,4 @@ export type MailDTO = {
     date: string;
     fromAddress: string;
     subject: string;
-}
+};

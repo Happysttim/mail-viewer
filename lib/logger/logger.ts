@@ -4,7 +4,7 @@ export enum LogType {
     INFO = "info",
     LOG = "log",
     DEBUG = "debug"
-};
+}
 export interface LogMessage {
     type: LogType;
     timestamp: number;

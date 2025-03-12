@@ -1,9 +1,9 @@
 import { Pop3CommandMap } from "lib/command";
-import { CommandArgs, CommandName, CommandResult, Zod } from "lib/type";
-import { z, ZodObject } from "zod";
+import { CommandArgs, CommandName, CommandResult } from "lib/type";
+import { z, ZodTypeAny } from "zod";
 import { ContentSchema, ErrorSchema } from "./common";
 
-export function createPop3Result<T extends CommandName<Pop3CommandMap>, Z extends ZodObject<any>>
+export function createPop3Result<T extends CommandName<Pop3CommandMap>, Z extends ZodTypeAny>
     (
         command: T,
         args: CommandArgs<Pop3CommandMap, T>,

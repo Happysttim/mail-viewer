@@ -7,14 +7,18 @@ import { uid } from "uid";
 type Pipe<T extends CommandMap> = {
     commandTransform: CommandTransform<T>;
     parser: Parser<T>;
-}
+};
 type PipeMap<T extends CommandMap = CommandMap> = Map<new () => T, Pipe<T>>;
 type NetworkMap<T extends CommandMap = CommandMap> = Map<string, MailNetwork<T>>;
 
 export class StreamManager {
 
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+
     private pipeMap: PipeMap<any> = new Map();
     private networkMap: NetworkMap<any> = new Map();
+
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     register<T extends CommandMap>(commandMap: new () => T, pipe: Pipe<T>) {
         this.pipeMap.set(commandMap, pipe);
@@ -50,17 +54,19 @@ export class StreamManager {
     }
 
     async flush() {
-        for(const [_, value] of Object.entries(this.networkMap)) {
+        for(const [, value] of Object.entries(this.networkMap)) {
             const handler = value.handler();
             if (handler) {
                 await handler.flush();
             }
-        };
+        }
     }
 
     private async generateStreamID(): Promise<string> {
         let generate: string = "";
-        while(this.networkMap.get(generate = uid(16))){}
+        do {
+            generate = uid(16);
+        } while(this.networkMap.get(generate = uid(16)));
         return generate;
     }
 

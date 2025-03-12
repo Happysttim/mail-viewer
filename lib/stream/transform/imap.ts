@@ -53,16 +53,19 @@ export class ImapTransform extends CommandTransform<ImapCommandMap> {
                     switch (args[0]) {
                         case "SEARCH":
                             return `${this.imapTag} UID SEARCH ${(args[1] as SearchQuery).queryString}`;
-                        case "STORE":
+                        case "STORE": {
                             const storeArgs = args[1] as StoreArgument;
                             return `${this.imapTag} UID STORE ${storeArgs.operation} ${storeArgs.flag}`;
-                        case "FETCH":
+                        }
+                        case "FETCH": {
                             const fetchArgs = args[1] as FetchArgument;
                             return `${this.imapTag} UID FETCH ${fetchArgs.range} ${fetchArgs.peek}`;
+                        }
                         case "COPY":
-                        case "MOVE":
+                        case "MOVE": {
                             const criteriaArgs = args[1] as CopyArgument;
                             return `${this.imapTag} UID ${args[0]} ${criteriaArgs.range} ${criteriaArgs.mailBox}`;
+                        }
                         case "EXPUNGE":
                             return `${this.imapTag} UID EXPUNGE ${args[1]}`;
                         default:

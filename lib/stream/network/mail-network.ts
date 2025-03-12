@@ -77,12 +77,12 @@ export class MailNetwork<T extends CommandMap> extends EventEmitter {
                     this.setSocketStatus(SocketStatus.CONNECTED);
                     this.commandHandler = new Handler(this.commandTransform);
                     resolve();
-                    pipeline(this.commandTransform, this.socket!!, receiver, err => {
+                    pipeline(this.commandTransform, this.socket!!, receiver, (err) => {
                         this.emit("stream-pipeline-error", err);
                     });
                 });
         
-                this.socket.on("error", err => {
+                this.socket.on("error", (err) => {
                     this.emit("socket-error", err);
                     this.setSocketStatus(SocketStatus.ERROR);
                 });

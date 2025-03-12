@@ -21,7 +21,7 @@ type Header = {
     from: string,
     to: string,
     subject: string,
-}
+};
 
 type FetchField<Type extends FetchRFC822> = {
     fetchType: Type,
@@ -109,11 +109,11 @@ export class ImapParser extends Parser<ImapCommandMap> {
             const ok = [...bufferUtf8.matchAll(/\W\sOK\s(?:[\[])(UIDVALIDITY|UIDNEXT|PERMANENTFLAGS)\s(\d+|(?:[(])(.+)(?:[)]))(?:[\]])/gm)];
 
             if (existsRecent.length > 0 && flags.length > 0 && ok.length > 0) {
-                const exists = existsRecent.find(v => v[2].toUpperCase() === "EXISTS");
-                const recent = existsRecent.find(v => v[2].toUpperCase() === "RECENT");
-                const validUID = ok.find(v => v[1].toUpperCase() === "UIDVALIDITY");
-                const nextUID = ok.find(v => v[1].toUpperCase() === "UIDNEXT");
-                const permanentFlags = ok.find(v => v[1].toUpperCase() === "PERMANENTFLAGS");
+                const exists = existsRecent.find((v) => v[2].toUpperCase() === "EXISTS");
+                const recent = existsRecent.find((v) => v[2].toUpperCase() === "RECENT");
+                const validUID = ok.find((v) => v[1].toUpperCase() === "UIDVALIDITY");
+                const nextUID = ok.find((v) => v[1].toUpperCase() === "UIDNEXT");
+                const permanentFlags = ok.find((v) => v[1].toUpperCase() === "PERMANENTFLAGS");
 
                 return SelectSchema.safeParse({
                     error: false,
@@ -137,13 +137,13 @@ export class ImapParser extends Parser<ImapCommandMap> {
         if (command === "list") {
             const list = [...bufferUtf8.matchAll(/^\W\sLIST\s\((\\HasNoChildren|\\HasChildren)(?: )?(.+)?\)\s(?:\")(.+?)(?:\")\s(?:")(.+?)(?:")/gm)];
             if (list.length > 0) {
-                const result = list.map(v => {
+                const result = list.map((v) => {
                     return {
                         hasChildren: v[1] === "\\HasChildren",
                         flags: (v[2] ?? "").split(" "),
                         separate: v[3],
                         boxName: v[4],
-                    }
+                    };
                 });
 
                 return ListSchema.safeParse({
@@ -163,7 +163,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
                 return FetchSchema.safeParse({
                     error: false,
                     result: fetchSchema,
-                })
+                });
             }
             return FetchSchema.safeParse({
                 error: false,
@@ -248,7 +248,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return SearchSchema.parse({
                 query: query.queryString,
                 count: result.length,
-                searchResult: result.map<Number>(v => parseInt(v)),
+                searchResult: result.map<number>((v) => parseInt(v)),
             });
         }
 
@@ -269,7 +269,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
                     /^\W\s(\d+)\sFETCH\s\(.+?\s(?:\{(\d+)\})(?:[\s\r\n]([\W\w\s]+?))(?:\r\n\r\n)(?:\sUID\s(\d+))?\)$/gm :
                     peek === "RFC822" ?
                     /^\W\s(\d+)\sFETCH\s\(.+?\s(?:\{(\d+)\})(?:[\s\r\n]([\W\w\s]+?))(?:\r\n\r\n)([\W\w\s]+?)(?:[\r\n]+\)|\sUID\s(\d+)\))$/gm :
-                    /[]/g
+                    new RegExp("", "g")
                 )
             ];
 
@@ -278,42 +278,42 @@ export class ImapParser extends Parser<ImapCommandMap> {
             }
 
             if (["INTERNALDATE", "BODYSTRUCTURE"].includes(peek)) {
-                return fields.map<FetchField<"NO_RFC">>(v => {
+                return fields.map<FetchField<"NO_RFC">>((v) => {
                     return {
                         fetchType: "NO_RFC",
                         fetchID: parseInt(v[1]),
                         data: v[2],
                         fetchUID: v[3] ? parseInt(v[3]) : undefined,
-                    }
+                    };
                 });
             }
 
             if (peek === "FLAGS") {
-                return fields.map<FetchField<"NO_RFC">>(v => {
+                return fields.map<FetchField<"NO_RFC">>((v) => {
                     const flags = v[2].match(/\((.+)\)/);
                     return {
                         fetchType: "NO_RFC",
                         fetchID: parseInt(v[1]),
                         data: flags ? flags[1] : "",
                         fetchUID: v[3] ? parseInt(v[3]) : undefined,
-                    }
+                    };
                 });
             }
 
             if (peek === "RFC822.HEADER") {
-                return fields.map<FetchField<"RFC822.HEADER">>(v => {
+                return fields.map<FetchField<"RFC822.HEADER">>((v) => {
                     return {
                         fetchType: "RFC822.HEADER",
                         fetchID: parseInt(v[1]),
                         size: parseInt(v[2]),
                         header: v[3],
                         fetchUID: v[4] ? parseInt(v[4]) : undefined,
-                    }
+                    };
                 });
             }
 
             if (peek === "RFC822") {
-                return fields.map<FetchField<"RFC822">>(v => {
+                return fields.map<FetchField<"RFC822">>((v) => {
                     return {
                         fetchType: "RFC822",
                         fetchID: parseInt(v[1]),
@@ -321,7 +321,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
                         header: v[3],
                         body: v[4],
                         fetchUID: v[5] ? parseInt(v[5]) : undefined,
-                    }
+                    };
                 });
             }
 
@@ -337,12 +337,12 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return FetchResultSchema.parse({
                 fetchResult: {
                     fetchType: "BODYSTRUCTURE",
-                    fetchStructure: fetchData.map(v => {
+                    fetchStructure: fetchData.map((v) => {
                         return {
                             fetchID: v.fetchID,
                             fetchUID: v.fetchUID,
                             structure: bodystructure(v.data),
-                        }
+                        };
                     }),
                 }
             });
@@ -353,14 +353,14 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return FetchResultSchema.parse({
                 fetchResult: {
                     fetchType: "FLAGS",
-                    fetchFlag: fetchData.map(v => {
+                    fetchFlag: fetchData.map((v) => {
                         return {
                             fetchID: v.fetchID,
                             fetchUID: v.fetchUID,
                             flagSchema: {
                                 flags: v.data.split(" ") ?? [],
                             }
-                        }
+                        };
                     }),
                 }
             });
@@ -371,12 +371,12 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return FetchResultSchema.parse({
                 fetchResult: {
                     fetchType: "INTERNALDATE",
-                    fetchDate: fetchData.map(v => {
+                    fetchDate: fetchData.map((v) => {
                         return {
                             fetchID: v.fetchID,
                             fetchUID: v.fetchUID,
                             internalDate: v.data,
-                        }
+                        };
                     }),
                 }
             });
@@ -387,15 +387,15 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return FetchResultSchema.parse({
                 fetchResult: {
                     fetchType: "RFC822",
-                    fetchContent: fetchData.map(v => {
+                    fetchContent: fetchData.map((v) => {
                         const mailContent = {
                             ...this.header(v.header),
                             content: contentSchema(v.header + "\r\n\r\n" + v.body),
-                        }
+                        };
                         return {
                             id: v.fetchID,
                             mailContent: mailContent,
-                        }
+                        };
                     }),
                 },
             });
@@ -406,11 +406,11 @@ export class ImapParser extends Parser<ImapCommandMap> {
             return FetchResultSchema.parse({
                 fetchResult: {
                     fetchType: "RFC822.HEADER",
-                    fetchHeader: fetchData.map(v => {
+                    fetchHeader: fetchData.map((v) => {
                         return {
                             id: v.fetchID,
                             header: this.header(v.header),
-                        }
+                        };
                     }),
                 },
             });
@@ -439,10 +439,12 @@ export class ImapParser extends Parser<ImapCommandMap> {
                     break;
                 case "to":
                     header.to = match[2].replaceAll(/[\r\n]/gm, "").trim();
+                    break;
                 case "subject":
                     header.subject = match[2].replaceAll(/[\r\n]/gm, "").trim();
                     break;
                 default:
+                    break;
             }
         }
 
@@ -460,7 +462,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
         const bufferUtf8 = this.buffer.toString("utf8");
         const expr = (type: (tag: string) => string): RegExp => {
             return new RegExp(`^${type(this.tag)}`, "gm");
-        }
+        };
 
         return expr(OK).test(bufferUtf8) ? "OK" :
             expr(NO).test(bufferUtf8) ? "NO" :

@@ -30,15 +30,15 @@ export class Pop3Transform extends CommandTransform<Pop3CommandMap> {
                 case "retr":
                     return `RETR ${args[0]}`;
                 case "stat":
-                    return `STAT`;
+                    return "STAT";
                 case "dele":
                     return `DELE ${args[0]}`;
                 case "quit":
-                    return `QUIT`;
+                    return "QUIT";
                 case "uidl":
                     return `UIDL ${args[0] ?? ""}`;
                 default:
-                    return ""
+                    return "";
             }
         }
 

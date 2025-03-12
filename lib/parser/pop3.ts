@@ -85,7 +85,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
                 uidlList.push({
                     seq: parseInt(uidl[1] ?? 0),
                     uid: uidl[2] ?? "",
-                })
+                });
             }
 
             return UidlSchema.safeParse({
@@ -114,7 +114,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
                             index: parseInt(numbers[i]),
                             octets: parseInt(numbers[i + 1]),
                         }
-                    )
+                    );
                 }
     
                 return ListSchema.safeParse({
@@ -169,6 +169,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
                         break;
                     case "to":
                         retrSchema.result.to = match[2].replaceAll(/[\r\n]/gm, "").trim();
+                        break;
                     case "subject":
                         retrSchema.result.subject = match[2].replaceAll(/[\r\n]/gm, "").trim();
                         break;

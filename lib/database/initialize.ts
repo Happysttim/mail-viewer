@@ -20,7 +20,7 @@ function deleteUserDatabase(dbName: string): boolean {
 
 async function createUserDatabase(user: UserDTO) {
     mkdir("./data/users/");
-    await withDatabase(`./data/users/${user.id}.db`, async database => {
+    await withDatabase(`./data/users/${user.id}.db`, async (database) => {
         database.pragma(`key='${user.password}'`);
         database.pragma("foreign_key=1");
         database.exec(`
@@ -60,7 +60,7 @@ export async function withDatabase<T = unknown>(path: string, fn: ((database: Da
 
 export async function createUserTable() {
     mkdir("./data/");
-    await withDatabase("./data/user.db", async database => {
+    await withDatabase("./data/user.db", async (database) => {
         database.exec(`
             CREATE TABLE IF NOT EXISTS UserTable (
                 id TEXT NOT NULL PRIMARY KEY,
@@ -72,7 +72,7 @@ export async function createUserTable() {
 
 
 export async function addUser(user: UserDTO) {
-    await withDatabase("./data/user.db", async database => {
+    await withDatabase("./data/user.db", async (database) => {
         database.prepare("INSERT INTO UserTable (id, password) VALUES (?, ?)").run(
             user.id, 
             createHash("sha256").update(user.password).digest().toString("hex")
@@ -83,7 +83,7 @@ export async function addUser(user: UserDTO) {
 
 export async function deleteUser(id: string) {
     mkdir("./data/");
-    await withDatabase("./data/user.db", async database => {
+    await withDatabase("./data/user.db", async (database) => {
         database.prepare("DELETE FROM UserTable WHERE id=?").run(id);
         deleteUserDatabase(id);
     });

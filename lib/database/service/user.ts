@@ -13,7 +13,7 @@ export class UserService {
     }
 
     async createStream(address: StreamDTO): Promise<boolean> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
                 INSERT INTO StreamTable (
@@ -31,7 +31,7 @@ export class UserService {
                 address.protocol,
                 address.host,
                 address.port
-            )
+            );
         });
 
         if (result) {
@@ -42,7 +42,7 @@ export class UserService {
     }
     
     async updateAddress(stream: StreamDTO): Promise<boolean> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
                 UPDATE 
@@ -61,8 +61,8 @@ export class UserService {
                 stream.protocol,
                 stream.host,
                 stream.port,
-                stream.streamId
-            )
+                stream.streamId,
+            );
         });
 
         if (result) {
@@ -73,7 +73,7 @@ export class UserService {
     }
 
     async deleteAddress(streamId: string): Promise<boolean> {
-        return await withDatabase(this.path, async database => {
+        return await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             const result = database.prepare("DELETE FROM StreamTable FROM streamId=?").run(streamId);
             return result.changes > 0;
@@ -81,7 +81,7 @@ export class UserService {
     }
 
     async address(streamId: string): Promise<MailService | undefined> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
                 SELECT
@@ -102,7 +102,7 @@ export class UserService {
     }
 
     async addresses(): Promise<MailService[]> {
-        const result = await withDatabase(this.path, async database => {
+        const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
                 SELECT
@@ -118,7 +118,7 @@ export class UserService {
         });
 
         return result ? result.map<MailService>(
-            value => new MailService(this.path, this.user, value)
+            (value) => new MailService(this.path, this.user, value)
         ) : [];
     }
 

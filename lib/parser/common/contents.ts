@@ -44,7 +44,7 @@ export function contentSchema(buffer: string): z.infer<typeof ContentSchema> | u
                 contentHeader: childHeaderSchema,
                 mimePart: `${mimePart}.${i + 1}`,
                 children: [],
-            }
+            };
             
             if (validParameter(childHeaderSchema, "boundary")) {
                 contentStack.push(
@@ -66,7 +66,7 @@ export function contentSchema(buffer: string): z.infer<typeof ContentSchema> | u
 }
 
 function validParameter (header: z.infer<typeof ContentHeaderSchema>, target: string): boolean {
-    return header.parameters ? header.parameters.find(parameter => parameter.key === target) !== undefined : false;
+    return header.parameters ? header.parameters.find((parameter) => parameter.key === target) !== undefined : false;
 }
 
 
@@ -83,7 +83,7 @@ function contentHeaderSchema (header: string): z.infer<typeof ContentHeaderSchem
             case "mime-version":
                 contentHeaderSchema.mimeVersion = match[2].trim();
                 break;
-            case "content-type":
+            case "content-type": {
                 contentHeaderSchema.contentType = match[2].trim() ?? "";
                 const mimeType = match[2].trim().split("/");
 
@@ -93,7 +93,7 @@ function contentHeaderSchema (header: string): z.infer<typeof ContentHeaderSchem
                 }
                 
                 parameter["charset"] = extractParameterInHeader(header, "charset") ?? "US-ASCII";
-                
+            }
                 break;
             case "content-transfer-encoding":
                 contentHeaderSchema.contentTransferEncoding = match[2].trim();
@@ -112,8 +112,10 @@ function contentHeaderSchema (header: string): z.infer<typeof ContentHeaderSchem
                 break;
             case "content-id":
                 contentHeaderSchema.contentId = match[2].trim();
-            case "content-description":
+                break;
+            case "content-description": 
                 contentHeaderSchema.contentDescription = match[2].trim();
+                break;
             default:
         }
     }
@@ -143,7 +145,7 @@ function extractBoundaryOnStart (contents: string): string | undefined {
 function extractBoundarySectionPoints (contents: string, boundary: string): number[] {
     const expr = new RegExp(`[\r\n]{0,}\-{2}${boundary}(?!\-{2})[\r\n]`, "gm");
 
-    return [...contents.matchAll(expr)].map<number>(value => value.index);
+    return [...contents.matchAll(expr)].map<number>((value) => value.index);
 }
 
 function extractBoundaryEndPoint (contents: string, boundary: string): number {
@@ -151,13 +153,6 @@ function extractBoundaryEndPoint (contents: string, boundary: string): number {
     const end = contents.match(expr);
 
     return end ? end.index ?? 0 : 0;
-}
-
-function extractBoundaryStartPoint (contents: string, boundary: string): number {
-    const expr = new RegExp(`[\r\n]{0,}(\-{2})(${boundary})(?!\-{2})[\r\n]`);
-    const start = contents.match(expr);
-
-    return start ? start.index ?? 0 : 0;
 }
 
 function extractContentsHeader (contents: string, boundaryPos: number): string {

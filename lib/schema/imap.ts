@@ -1,10 +1,9 @@
 import { ImapCommandMap } from "lib/command";
-import { CommandArgs, CommandName, CommandResult, Zod } from "lib/type";
-import { z, ZodObject } from "zod";
+import { CommandArgs, CommandName, CommandResult } from "lib/type";
+import { z, ZodTypeAny } from "zod";
 import { ContentSchema, ErrorSchema } from "./common";
-import { parse } from "date-fns";
 
-export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodObject<any>>
+export function createImapResult<T extends CommandName<ImapCommandMap>, Z extends ZodTypeAny>
     (
         command: T,
         args: CommandArgs<ImapCommandMap, T>,
@@ -83,7 +82,7 @@ type BodyStructureType = {
     language?: string | string[],
     location?: string,
     children?: BodyStructureType[],
-}
+};
 
 export const BodyStructureSchema: z.ZodType<BodyStructureType> = z.object({
     mimeType: z.string(),

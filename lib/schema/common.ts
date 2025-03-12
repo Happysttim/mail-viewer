@@ -11,7 +11,7 @@ type ContentHeaderSchemaType = {
     contentDisposition?: string,
     contentId?: string,
     contentDescription?: string,
-}
+};
 
 export const ErrorSchema = z.object({
     error: z.boolean(),
@@ -37,7 +37,7 @@ type ContentSchemaType = {
     mimePart: string,
     contentBody?: string,
     children?: ContentSchemaType[],
-}
+};
 
 export const ContentSchema: z.ZodType<ContentSchemaType> = z.object({
     contentHeader: ContentHeaderSchema,
