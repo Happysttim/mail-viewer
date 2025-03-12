@@ -11,7 +11,7 @@ export class SearchQuery {
     constructor() {}
 
     get queryString(): string {
-        return this.query;
+        return this.query.trim();
     }
 
     all(): SearchQuery {
