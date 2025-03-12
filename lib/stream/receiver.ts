@@ -43,8 +43,7 @@ export default class Receiver<T extends CommandMap> extends Transform {
             }
 
             if (this.parserEOF() === "EOF") {
-                const error = this.parser.schema();
-                commandEvent.emit(this.parser.result.id, error, this.parser.result.commandResult);
+                commandEvent.emit(this.parser.result.id, this.parser.schema(), this.parser.result.commandResult);
                 this.usingSchema = true;
             }
 

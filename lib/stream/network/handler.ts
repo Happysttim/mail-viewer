@@ -23,8 +23,8 @@ export class Handler<T extends CommandMap> {
                     this.promiseCommandQueue = this.promiseCommandQueue.then(async () => {
                         const message = await this.commandQueue.removeQueue();
                         if (message && this.commandTransform.write(message)) {
-                            commandEvent.once<T, Name>(message.id, (error, result) => {
-                                if (error) {
+                            commandEvent.once<T, Name>(message.id, (hasSchema, result) => {
+                                if (hasSchema) {
                                     resolve(result);
                                 } else {
                                     reject();
