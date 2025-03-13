@@ -2,8 +2,9 @@ import { CommandArgs, CommandMap, CommandName, Result } from "lib/type";
 import { CommandQueue } from "lib/command";
 import { CommandTransform } from "lib/stream/transform";
 import { commandEvent } from "lib/event";
+import EventEmitter from "node:events";
 
-export class Handler<T extends CommandMap> {
+export class Handler<T extends CommandMap> extends EventEmitter {
 
     private promiseCommandQueue: Promise<void> = Promise.resolve();
     private commandQueue: CommandQueue<T> = new CommandQueue();
@@ -12,6 +13,7 @@ export class Handler<T extends CommandMap> {
     constructor(
         commandTransform: CommandTransform<T>,
     ) {
+        super();
         this.commandTransform = commandTransform;
     }
 
@@ -25,6 +27,7 @@ export class Handler<T extends CommandMap> {
                         if (message && this.commandTransform.write(message)) {
                             commandEvent.once<T, Name>(message.id, (hasSchema, result) => {
                                 if (hasSchema) {
+                                    this.emit(message.command, result);
                                     resolve(result);
                                 } else {
                                     reject();
@@ -35,8 +38,20 @@ export class Handler<T extends CommandMap> {
                         }
                     });
                 });
-            }
+            },
         };
+    }
+
+    on<Command extends CommandName<T>>(eventName: Command, listener: (result: Result<T, Command>) => void): this {
+        return super.on(eventName, listener);
+    }
+
+    once<Command extends CommandName<T>>(eventName: Command, listener: (result: Result<T, Command>) => void): this {
+        return super.once(eventName, listener);
+    }
+
+    emit<Command extends CommandName<T>>(eventName: Command, result: Result<T, Command>): boolean {
+        return super.emit(eventName, result);
     }
 
     async flush() {
