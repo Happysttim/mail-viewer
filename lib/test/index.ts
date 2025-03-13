@@ -6,6 +6,7 @@ import { ImapParser, Pop3Parser } from "lib/parser";
 import { StreamManager } from "lib/stream/network";
 import { ImapTransform, Pop3Transform } from "lib/stream/transform";
 import dotenv from "dotenv";
+import { UidResult } from "lib/schema/imap";
 
 dotenv.config({ path: ".env.local.test" });
 
@@ -15,19 +16,21 @@ const imapHost = process.env.IMAP_HOST ?? "";
 const imapPort = parseInt(process.env.IMAP_PORT ?? "993");
 const mailID = process.env.MAIL_ID ?? "";
 const mailPassword = process.env.MAIL_PASSWORD ?? "";
+const dbID = process.env.DB_USER_TEST_ID ?? "";
+const dbPassword = process.env.DB_USER_TEST_PASSWORD ?? "";
 
 (async() => {
-    const userKim: UserDTO = {
-        id: "kim_id",
-        password: "Password"
+    const userDto: UserDTO = {
+        id: dbID,
+        password: dbPassword
     };
 
     // 유저 테이블 만들기
     await createUserTable();
     // 유저 등록
-    await addUser(userKim);
+    await addUser(userDto);
     // 유저 서비스 객체 받아오기
-    const userService = await user(userKim);
+    const userService = await user(userDto);
 
     if (userService === undefined) {
         console.log("userService is undefined");
@@ -126,6 +129,14 @@ const mailPassword = process.env.MAIL_PASSWORD ?? "";
         console.log("imapHandler or pop3Handler is undefined");
         return;
     }
+    
+    // IMAP UID 명령어 이벤트 테스트
+    imapStream.handler()?.on("uid", (result: UidResult) => {
+        console.log(`스트림(${imapStream.id}) UID 명령어, ARGS (${result.args})`);
+        if (result.schema.result && result.schema.result.uidResult.arg === "SEARCH") {
+            console.log(`SEARCH 결과: ${JSON.stringify(result.schema.result.uidResult.searchResult)}`);
+        }
+    });
 
     // IMAP의 로그인
     const imapLoginResult = await imapHandler.command("login").execute(mailID, mailPassword);
