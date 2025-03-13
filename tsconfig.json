@@ -12,13 +12,11 @@
         "types": ["node"],
         "paths": {
             "lib/*": ["lib/*"],
-            "render/*": ["render/*"],
+            "app/*": ["app/*"],
         },
         "baseUrl": ".",
         "outDir": "./build"
     },
     "include": ["**/*.ts", "**/*.tsx", "eslint.config.mjs"],
-    "exclude": [
-        "*.config.ts",
-    ]
+    "exclude": ["*.config.ts"],
 }
