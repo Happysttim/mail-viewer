@@ -1,5 +1,4 @@
-import { Transform } from "node:stream";
-import { TransformCallback } from "stream";
+import { Transform, TransformCallback } from "node:stream";
 import { CommandMap, IdResult } from "lib/type";
 import { CommandTransform } from "./transform";
 import { Parser } from "lib/parser";
