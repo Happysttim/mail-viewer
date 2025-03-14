@@ -1,6 +1,7 @@
-import { StreamDTO, UserDTO } from "lib/database/dto";
+import { ProfileDTO, StreamDTO, UserDTO } from "lib/database/dto";
 import { withDatabase } from "lib/database/initialize";
 import { MailService } from "./mail";
+import { ProfileService } from "./profile";
 
 export class UserService {
 
@@ -41,7 +42,7 @@ export class UserService {
         return false;
     }
     
-    async updateAddress(stream: StreamDTO): Promise<boolean> {
+    async updateStream(stream: StreamDTO): Promise<boolean> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
@@ -72,7 +73,7 @@ export class UserService {
         return false;
     }
 
-    async deleteAddress(streamId: string): Promise<boolean> {
+    async deleteStream(streamId: string): Promise<boolean> {
         return await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             const result = database.prepare("DELETE FROM StreamTable FROM streamId=?").run(streamId);
@@ -80,7 +81,27 @@ export class UserService {
         }) ?? false;
     }
 
-    async address(streamId: string): Promise<MailService | undefined> {
+    async profile(streamId: string): Promise<ProfileService | undefined> {
+        const result = await withDatabase(this.path, async (database) => {
+            database.pragma(`key='${this.user.password}'`);
+            return database.prepare<unknown[], ProfileDTO>(`
+                SELECT
+                    streamId,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate
+                FROM
+                    ProfileTable
+                WHERE
+                    streamId=?    
+            `).get(streamId);
+        });
+
+        return result ? new ProfileService(this.path, this.user, result) : undefined;
+    }
+
+    async stream(streamId: string): Promise<MailService | undefined> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
@@ -101,7 +122,7 @@ export class UserService {
         return result ? new MailService(this.path, this.user, result) : undefined;
     }
 
-    async addresses(): Promise<MailService[]> {
+    async streams(): Promise<MailService[]> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
