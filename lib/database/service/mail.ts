@@ -3,14 +3,19 @@ import { withDatabase } from "lib/database";
 
 export class MailService {
 
-    readonly stream: StreamDTO;
     readonly user: UserDTO;
     readonly path: string;
 
-    constructor(path: string, user: UserDTO, stream: StreamDTO) {
+    private streamDto: StreamDTO;
+
+    get stream(): StreamDTO {
+        return this.streamDto;
+    }
+
+    constructor(path: string, user: UserDTO, streamDto: StreamDTO) {
         this.path = path;
         this.user = user;
-        this.stream = stream;
+        this.streamDto = streamDto;
     }
 
     async newMail(mail: MailDTO): Promise<boolean> {
