@@ -12,6 +12,14 @@ export type StreamDTO = {
     port: number;
 };
 
+export type ProfileDTO = {
+    streamId: string;
+    defaultName: string;
+    aliasName: string;
+    profileColor: string;
+    notificate: boolean;
+};
+
 export type MailDTO = {
     mailId: number,
     streamId: string;
