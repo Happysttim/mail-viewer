@@ -34,6 +34,18 @@ async function createUserDatabase(user: UserDTO) {
             ) 
         `);
         database.exec(`
+            CREATE TABLE IF NOT EXISTS ProfileTable (
+                streamId TEXT NOT NULL PRIMARY KEY,
+                defaultName TEXT NOT NULL,
+                aliasName TEXT NOT NULL,
+                profileColor TEXT NOT NULL,
+                notificate NUMERIC NOT NULL,
+                CONSTRAINT streamId_fk FOREIGN KEY(streamId)
+                REFERENCES StreamTable(streamId)
+                ON DELETE CASCADE
+            )
+        `);
+        database.exec(`
             CREATE TABLE IF NOT EXISTS MailTable (
                 mailId INTEGER PRIMARY KEY AUTOINCREMENT,
                 streamId TEXT NOT NULL,
