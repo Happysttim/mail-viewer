@@ -15,7 +15,7 @@ export async function existsUser(id: string): Promise<boolean> {
 }
 
 export async function user(user: UserDTO): Promise<UserService | undefined> {
-    if (!existsUser(user.id)) {
+    if (!await existsUser(user.id)) {
         return undefined;
     }
     const result = await withDatabase("./data/user.db", async (database) => {
