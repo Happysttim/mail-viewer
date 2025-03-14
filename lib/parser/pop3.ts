@@ -26,7 +26,7 @@ export class Pop3Parser extends Parser<Pop3CommandMap> {
         }
 
         if (this.commandType() === "MULTI" || this.commandType() == "RETR") {
-            return bufferUtf8.endsWith(".\r\n");
+            return bufferUtf8.endsWith("\r\n.\r\n");
         }
 
         if (this.commandType() === "UNKNOWN") {
