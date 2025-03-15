@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { observe } from "app/config";
+// import { getObserve } from "app/config";
 import { MailFilterMap } from "app/type";
 import { contextBridge, ipcRenderer } from "electron";
 import { MailDTO, ProfileDTO, StreamDTO, UserDTO } from "lib/database/dto";
@@ -32,6 +32,4 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
     invoke: <K extends Keys<InvokeMap>>(channel: K, ...args: MapParameter<InvokeMap, K>): Promise<ReturnType<InvokeMap, K>> => ipcRenderer.invoke(channel, args),
 });
 
-contextBridge.exposeInMainWorld("observe", {
-    observe,
-});
+// contextBridge.exposeInMainWorld("observe", getObserve());
