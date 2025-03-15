@@ -107,8 +107,8 @@ const dbPassword = process.env.DB_USER_TEST_PASSWORD ?? "";
     });
 
     // IMAP, POP3 메일 서비스 받아오기
-    const imapMailService = await userService.address(imapStream.id);
-    const pop3MailService = await userService.address(pop3Stream.id);
+    const imapMailService = await userService.stream(imapStream.id);
+    const pop3MailService = await userService.stream(pop3Stream.id);
 
     // IMAP, POP3 메일 데이터 받아오기
     // const imapStream = streamManager.stream<ImapCommandMap>(streamID);
