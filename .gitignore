@@ -1,3 +1,9 @@
 /node_modules/
 /data/
+/dist-electron/
+/build/
+local-env.ts
 .env.local.test
+.env.development
+.env.production
+.env
