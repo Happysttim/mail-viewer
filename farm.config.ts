@@ -1,10 +1,13 @@
 import { defineConfig } from "@farmfe/core";
 import electron from "@farmfe/js-plugin-electron"; 
 import path from "node:path";
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.development.local" });
 
 export default defineConfig({
     server: {
-        port: 9000,
+        port: parseInt(process.env.PORT || "9000"),
         hmr: true,
         cors: true,
     },
@@ -13,7 +16,7 @@ export default defineConfig({
             "@farmfe/plugin-react",
             {
                 refresh: process.env.NODE_ENV === "development",
-                development: process.env.NODE_ENV === "development"
+                development: process.env.NODE_ENV === "development",
             },
         ],
         electron({
@@ -21,6 +24,7 @@ export default defineConfig({
                 input: path.join(__dirname, "./index.ts"),
                 farm: {
                     compilation: {
+                        minify: false,
                         sourcemap: false,
                         external: ["electron"],
                         externalNodeBuiltins: true,
@@ -36,6 +40,7 @@ export default defineConfig({
                 input: path.join(__dirname, "./app/preload.ts"),
                 farm: {
                     compilation: {
+                        minify: false,
                         sourcemap: false,
                         external: ["electron"],
                         externalNodeBuiltins: true,
