@@ -8,3 +8,10 @@ export type Mail = {
     contents: string,
 };
 export type StreamIds = string[];
+export type Observe = {
+    login: {
+        id: string,
+        password: string,
+    },
+    streamId: string,
+};
