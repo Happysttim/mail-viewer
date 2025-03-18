@@ -1,5 +1,6 @@
 import { defineConfig } from "@farmfe/core";
-import electron from "@farmfe/js-plugin-electron"; 
+import electron from "@farmfe/js-plugin-electron";
+import farmPostcss from "@farmfe/js-plugin-postcss"; 
 import path from "node:path";
 import dotenv from "dotenv";
 
@@ -12,13 +13,8 @@ export default defineConfig({
         cors: true,
     },
     plugins: [
-        [
-            "@farmfe/plugin-react",
-            {
-                refresh: process.env.NODE_ENV === "development",
-                development: process.env.NODE_ENV === "development",
-            },
-        ],
+        "@farmfe/plugin-react",
+        farmPostcss(),
         electron({
             main: {
                 input: path.join(__dirname, "./index.ts"),
