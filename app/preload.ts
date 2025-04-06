@@ -2,7 +2,6 @@
 import { MailFilterMap } from "app/type";
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 import { MailDTO, ProfileDTO, StreamDTO, UserDTO } from "lib/database/dto";
-import { getObserve } from "./config";
 
 type InvokeMap = {
     "create-user-account": (userDto: UserDTO) => Promise<boolean>;
@@ -44,5 +43,3 @@ export interface IpcRenderer {
     invoke: <K extends Keys<InvokeMap>>(channel: K, ...args: MapParameter<InvokeMap, K>) => Promise<ReturnType<InvokeMap, K>>,
     on: <K extends Keys<ReceiveMap>>(channel: K, listener: EventListener<ReceiveMap, K>) => Electron.IpcRenderer,
 }
-
-contextBridge.exposeInMainWorld("observe", getObserve());
