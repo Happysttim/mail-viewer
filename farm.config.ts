@@ -53,12 +53,14 @@ export default defineConfig({
     compilation: {
         sourcemap: false,
         input: {
-            login: path.join(__dirname, "./app/render/login.html"),
+            entry: path.join(__dirname, "./app/render/entry.html"),
+            main: path.join(__dirname, "./app/render/main.html"),
         },
         output: {
             path: "build",
             targetEnv: "browser-esnext",
             publicPath: "./",
+            assetsFilename: "assets/[name].[hash].[ext]",
         },
     },
 });
