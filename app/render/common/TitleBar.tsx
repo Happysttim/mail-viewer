@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Symbol = "MINIMUM" | "MAXIMUM" | "CLOSE";
 type TitleBarProp = {
     symbols: Symbol[],
+    backgroundColor?: string,
 };
 
 const SymbolMinimum = () => {
@@ -50,7 +52,7 @@ const SymbolUnmaximum = () => {
     );
 };
 
-export const TitleBar = ({ symbols }: TitleBarProp) => {
+export const TitleBar = ({ symbols, backgroundColor = "inherit" }: TitleBarProp) => {
 
     const [ expand, setExpand ] = useState(false);
     const handleExpand = (action: "CLOSE" | "MINIMUM" | "MAXIMUM" | "UNMAXIMUM") => {
@@ -67,21 +69,23 @@ export const TitleBar = ({ symbols }: TitleBarProp) => {
     }, []);
 
     return (
-        <div className="appRegionDrag fixed h-30 w-full bg-inherit top-0">
+        <div style={{
+            backgroundColor
+        }} className="appRegionDrag relative shrink-0 h-30 w-full">
             <div className="flex justify-end">
                 <div className="appRegionNoDrag flex">
                     {
                         symbols.length > 0 && symbols.map((v) => {
                             if (v === "MINIMUM") {
                                 return (
-                                    <div className="titlebar-symbol hover:bg-black/10" onClick={() => handleExpand("MINIMUM")}>
+                                    <div className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand("MINIMUM")}>
                                         <SymbolMinimum />
                                     </div>
                                 );
                             }
                             if (v === "MAXIMUM") {
                                 return (
-                                    <div className="titlebar-symbol hover:bg-black/10" onClick={() => handleExpand(expand ? "UNMAXIMUM" : "MAXIMUM")}>
+                                    <div className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand(expand ? "UNMAXIMUM" : "MAXIMUM")}>
                                         {
                                             expand ? <SymbolUnmaximum /> : <SymbolMaximum />
                                         }

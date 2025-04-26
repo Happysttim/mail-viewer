@@ -10,11 +10,38 @@ const browserPath = electronApp.isPackaged ? "." : `http://${process.env.SERVER_
 
 export class App {
 
-    private loginWindow: BrowserWindow | undefined;
+    private entryWindow: BrowserWindow | undefined;
+    private mainWindow: BrowserWindow | undefined;
+    private infoWindow: BrowserWindow | undefined;
 
-    initWindows() {
-        this.loginWindow = new BrowserWindow({
+    initEntryWindow() {
+        this.entryWindow = new BrowserWindow({
             width: 600,
+            height: 800,
+            focusable: true,
+            resizable: false,
+            titleBarStyle: "hidden",
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+                preload: path.join(__dirname, "preload.js")
+            }
+        });
+
+        if (!electronApp.isPackaged) {
+            this.entryWindow.loadURL(`${browserPath}/entry.html`);
+            this.entryWindow.webContents.openDevTools();
+        } else {
+            this.entryWindow.loadFile(`${browserPath}/entry.html`);
+        }
+
+        this.ipcRendererRequest(this.entryWindow);
+        this.entryWindow.show();
+    }
+
+    initMainWindow() {
+        this.mainWindow = new BrowserWindow({
+            width: 1080,
             height: 800,
             focusable: true,
             titleBarStyle: "hidden",
@@ -26,14 +53,39 @@ export class App {
         });
 
         if (!electronApp.isPackaged) {
-            this.loginWindow.loadURL(`${browserPath}/login.html`);
-            this.loginWindow.webContents.openDevTools();
+            this.mainWindow.loadURL(`${browserPath}/main.html`);
+            this.mainWindow.webContents.openDevTools();
         } else {
-            this.loginWindow.loadFile(`${browserPath}/login.html`);
+            this.mainWindow.loadFile(`${browserPath}/main.html`);
         }
 
-        this.ipcRendererRequest(this.loginWindow);
-        this.loginWindow.show();
+        this.ipcRendererRequest(this.mainWindow);
+        this.mainWindow.show();
+    }
+
+    initInfoWindow() {
+        this.infoWindow = new BrowserWindow({
+            width: 600,
+            height: 550,
+            focusable: true,
+            resizable: false,
+            titleBarStyle: "hidden",
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+                preload: path.join(__dirname, "preload.js")
+            }
+        });
+
+        if (!electronApp.isPackaged) {
+            this.infoWindow.loadURL(`${browserPath}/info.html`);
+            this.infoWindow.webContents.openDevTools();
+        } else {
+            this.infoWindow.loadFile(`${browserPath}/info.html`);
+        }
+
+        this.ipcRendererRequest(this.infoWindow);
+        this.infoWindow.show();
     }
 
     ipcMainHook() {

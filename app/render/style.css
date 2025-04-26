@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        font-family: "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+        @apply select-none w-full h-screen overflow-hidden;
+    }
+
+    #root {
+        @apply relative w-screen h-screen;
+    }
+}
+
+@layer components {
+    .titlebar-symbol {
+        @apply flex w-[50px] h-[30px] items-center justify-center;
+    }
+
+    .input-textbox {
+        @apply block w-60 h-16 bg-[#E0E0E0] text-left pl-10 opacity-50 outline-none font-thin tracking-tighter;
+    }
+
+    .input-textbox::placeholder {
+        @apply text-[#ACACAC];
+    }
+
+    .btn-lightAmber {
+        @apply block w-60 h-16 bg-[#E8B274] border-b-white text-center tracking-wider text-2xl text-white font-thin;
+    }
+
+    .anchor-text {
+        @apply underline text-[#83CBFF] text-xs cursor-pointer;
+    }
+
+    .big-title {
+        font-family: "NanumSqure Neo", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        @apply text-black text-5xl tracking-tighter font-thin mb-2;
+    }
+
+    .stream-panel {
+        @apply bg-[#414141] flex shrink-0 flex-col overflow-y-auto stream-panel-minimum-width lg:stream-panel-maximum-width;
+    }
+
+    .stream-panel-maximum-width {
+        animation: panel-maximum 0.5s forwards;
+    }
+
+    .stream-panel-minimum-width {
+        animation: panel-minimum 0.5s forwards;
+    }
+
+    .info-form {
+        @apply m-auto mt-10 relative w-[550px] h-[500px];
+    }
+
+    .form-control {
+        @apply flex w-full justify-between mb-2;
+    }
+
+    *::-webkit-scrollbar {
+        @apply bg-transparent w-1;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        @apply bg-[#B0B0B0] rounded-full;
+    }
+
+    @keyframes panel-maximum {
+        from {
+            @apply w-11;
+        }
+
+        to {
+            @apply w-60;
+        }
+    }
+
+    @keyframes panel-minimum {
+        from {
+            @apply w-60;
+        }
+
+        to {
+            @apply w-11;
+        }
+    }
+}
