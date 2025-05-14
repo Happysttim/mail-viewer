@@ -1,7 +1,9 @@
 /node_modules/
 /data/
 /dist-electron/
+/app/render/assets/
 /build/
+/lib/test/
 .env
 .env.local
 .env.test.local
