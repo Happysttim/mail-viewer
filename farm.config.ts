@@ -22,8 +22,17 @@ export default defineConfig({
                     compilation: {
                         minify: false,
                         sourcemap: false,
-                        external: ["electron"],
+                        external: [
+                            "electron",
+                            "better-sqlite3-multiple-ciphers",
+                        ],
                         externalNodeBuiltins: true,
+                        resolve: {
+                            alias: {
+                                "app": path.resolve(__dirname, "app"),
+                                "lib": path.resolve(__dirname, "lib"),
+                            },
+                        },
                         output: {
                             targetEnv: "node-next",
                             path: "build",
@@ -52,9 +61,16 @@ export default defineConfig({
     ],
     compilation: {
         sourcemap: false,
+        resolve: {
+            alias: {
+                "app": path.resolve(__dirname, "app"),
+                "lib": path.resolve(__dirname, "lib"),
+            },
+        },
         input: {
             entry: path.join(__dirname, "./app/render/entry.html"),
             main: path.join(__dirname, "./app/render/main.html"),
+            info: path.join(__dirname, "./app/render/info.html"),
         },
         output: {
             path: "build",

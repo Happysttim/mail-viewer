@@ -30,20 +30,14 @@ async function createUserDatabase(user: UserDTO) {
                 mailPassword TEXT NOT NULL,
                 protocol TEXT NOT NULL,
                 host TEXT NOT NULL,
-                port INTEGER NOT NULL
-            ) 
-        `);
-        database.exec(`
-            CREATE TABLE IF NOT EXISTS ProfileTable (
-                streamId TEXT NOT NULL PRIMARY KEY,
+                port INTEGER NOT NULL,
+                tls NUMERIC NOT NULL,
                 defaultName TEXT NOT NULL,
                 aliasName TEXT NOT NULL,
                 profileColor TEXT NOT NULL,
                 notificate NUMERIC NOT NULL,
-                CONSTRAINT streamId_fk FOREIGN KEY(streamId)
-                REFERENCES StreamTable(streamId)
-                ON DELETE CASCADE
-            )
+                isNew NUMERIC NOT NULL
+            ) 
         `);
         database.exec(`
             CREATE TABLE IF NOT EXISTS MailTable (
@@ -54,6 +48,16 @@ async function createUserDatabase(user: UserDTO) {
                 date NUMERIC NOT NULL,
                 fromAddress TEXT NOT NULL,
                 subject TEXT NOT NULL,
+                CONSTRAINT streamId_fk FOREIGN KEY(streamId)
+                REFERENCES StreamTable(streamId)
+                ON DELETE CASCADE
+            )
+        `);
+        database.exec(`
+            CREATE TABLE IF NOT EXISTS MailHistoryTable (
+                streamId TEXT NOT NULL,
+                fetchId INTEGER NOT NULL,
+                uid TEXT NOT NULL,
                 CONSTRAINT streamId_fk FOREIGN KEY(streamId)
                 REFERENCES StreamTable(streamId)
                 ON DELETE CASCADE

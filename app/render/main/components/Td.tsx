@@ -5,16 +5,17 @@ type TdProps = {
     width?: number | "auto";
     onClick?: () => void;
     label?: string;
+    tooltip?: string;
     icon?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>;
 
-export const Td = ({ width = "auto", onClick, label, icon, className }: TdProps) => {
+export const Td = ({ width = "auto", onClick, label, icon, className, tooltip }: TdProps) => {
 
     if (icon) {
         return (
             <div style={{
                 width,
-            }} className={`${className}`} onClick={onClick}> 
+            }} className={`${className}`} title={tooltip} onClick={onClick}> 
                 { icon } 
             </div>
         );
@@ -22,7 +23,7 @@ export const Td = ({ width = "auto", onClick, label, icon, className }: TdProps)
 
     if (label) {
         return (
-            <span className={`${className}`} onClick={onClick}>
+            <span className={`${className}`} title={tooltip} onClick={onClick}>
                 { label }
             </span>
         );
@@ -31,6 +32,6 @@ export const Td = ({ width = "auto", onClick, label, icon, className }: TdProps)
     return (
         <div style={{
             width,
-        }} className={`${className}`} onClick={onClick}></div>
+        }} className={`${className}`} title={tooltip} onClick={onClick}></div>
     );
 };

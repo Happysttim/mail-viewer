@@ -15,6 +15,7 @@ type ContentHeaderSchemaType = {
 
 export const ErrorSchema = z.object({
     error: z.boolean(),
+    result: z.object({}).optional(),
 });
 
 export const ContentHeaderSchema: z.ZodType<ContentHeaderSchemaType> = z.object({

@@ -44,6 +44,11 @@ export class SearchQuery {
         return this;
     }
 
+    uid(): SearchQuery {
+        this.query += "UID ";
+        return this;
+    }
+
     draft(): SearchQuery {
         this.query += "DRAFT ";
         return this;

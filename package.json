@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
     "@eslint/js": "^9.22.0",
     "@farmfe/cli": "^1.0.4",
     "@farmfe/core": "^1.6.7",
@@ -23,14 +24,17 @@
     "@stylistic/eslint-plugin-js": "^4.2.0",
     "@stylistic/eslint-plugin-jsx": "^4.2.0",
     "@stylistic/eslint-plugin-ts": "^4.2.0",
+    "@tanstack/eslint-plugin-query": "^5.74.7",
     "@types/node": "^22.7.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^19.0.4",
     "@typescript-eslint/eslint-plugin": "^8.26.1",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.0.1",
-    "electron": "^35.0.1",
+    "electron": "35.2.1",
+    "emailjs-mime-codec": "^2.0.9",
     "eslint": "^9.12.0",
+    "node-abi": "^4.3.0",
     "postcss": "^8.5.3",
     "react-refresh": "^0.16.0",
     "rollup": "^4.24.0",
@@ -40,12 +44,20 @@
     "typescript-eslint": "^8.26.1"
   },
   "dependencies": {
+    "@rc-component/color-picker": "^3.0.1",
+    "@tanstack/query-core": "^5.75.0",
+    "@tanstack/react-query": "^5.75.2",
+    "@types/emailjs-mime-codec": "^2.0.2",
     "better-sqlite3-multiple-ciphers": "^11.8.1",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
+    "iconv-lite": "^0.6.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "uid": "^2.0.2",
     "zod": "^3.23.8"
+  },
+  "overrides": {
+    "electron": "35.2.1"
   }
 }

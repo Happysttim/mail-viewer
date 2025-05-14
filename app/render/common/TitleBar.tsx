@@ -78,14 +78,14 @@ export const TitleBar = ({ symbols, backgroundColor = "inherit" }: TitleBarProp)
                         symbols.length > 0 && symbols.map((v) => {
                             if (v === "MINIMUM") {
                                 return (
-                                    <div className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand("MINIMUM")}>
+                                    <div key={v} className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand("MINIMUM")}>
                                         <SymbolMinimum />
                                     </div>
                                 );
                             }
                             if (v === "MAXIMUM") {
                                 return (
-                                    <div className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand(expand ? "UNMAXIMUM" : "MAXIMUM")}>
+                                    <div key={v} className="titlebar-symbol hover:bg-gray-700/50" onClick={() => handleExpand(expand ? "UNMAXIMUM" : "MAXIMUM")}>
                                         {
                                             expand ? <SymbolUnmaximum /> : <SymbolMaximum />
                                         }
@@ -93,7 +93,7 @@ export const TitleBar = ({ symbols, backgroundColor = "inherit" }: TitleBarProp)
                                 );
                             }
                             return (
-                                <div className="titlebar-symbol hover:bg-red-400/50" onClick={() => handleExpand("CLOSE")}>
+                                <div key={v} className="titlebar-symbol hover:bg-red-400/50" onClick={() => handleExpand("CLOSE")}>
                                     <SymbolClose />
                                 </div>
                             );

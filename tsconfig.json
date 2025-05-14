@@ -10,13 +10,14 @@
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "types": ["node"],
+        "baseUrl": ".",
+        "typeRoots": ["./node_modules/@types"],
         "paths": {
             "lib/*": ["lib/*"],
             "app/*": ["app/*"],
         },
-        "baseUrl": ".",
         "outDir": "./build"
     },
-    "include": ["**/*.ts", "**/*.tsx", "eslint.config.mjs"],
+    "include": ["lib", "app", "*.ts"],
     "exclude": ["*.config.ts"],
 }

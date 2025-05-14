@@ -3,6 +3,7 @@ import { CommandQueue } from "lib/command";
 import { CommandTransform } from "lib/stream/transform";
 import { commandEvent } from "lib/event";
 import EventEmitter from "node:events";
+import { StringValidation } from "zod";
 
 export class Handler<T extends CommandMap> extends EventEmitter {
 
@@ -10,17 +11,21 @@ export class Handler<T extends CommandMap> extends EventEmitter {
     private commandQueue: CommandQueue<T> = new CommandQueue();
     private commandTransform: CommandTransform<T>;
 
+    latestCommandId: string;
+
     constructor(
         commandTransform: CommandTransform<T>,
     ) {
         super();
         this.commandTransform = commandTransform;
+        this.latestCommandId = "";
     }
 
     command<Name extends CommandName<T>>(name: Name) {
         return {
             execute: <Args extends CommandArgs<T, Name>>(...args: Args): Promise<Result<T, Name>> => {
-                this.commandQueue.addQueue(commandEvent.generateCommandId(), name, ...args);
+                this.latestCommandId = commandEvent.generateCommandId();
+                this.commandQueue.addQueue(this.latestCommandId, name, ...args);
                 return new Promise((resolve, reject) => {
                     this.promiseCommandQueue = this.promiseCommandQueue.then(async () => {
                         const message = await this.commandQueue.removeQueue();
@@ -30,11 +35,11 @@ export class Handler<T extends CommandMap> extends EventEmitter {
                                     this.emit(message.command, result);
                                     resolve(result);
                                 } else {
-                                    reject();
+                                    reject("no schema");
                                 }
                             });
                         } else {
-                            reject();
+                            reject("write fail");
                         }
                     });
                 });

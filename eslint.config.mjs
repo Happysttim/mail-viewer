@@ -3,10 +3,12 @@ import tseslint from 'typescript-eslint';
 import stylisticJs from "@stylistic/eslint-plugin-js";
 import stylisticTs from "@stylistic/eslint-plugin-ts";
 import stylisticJsx from "@stylistic/eslint-plugin-jsx";
+import query from "@tanstack/eslint-plugin-query";
 
 export default tseslint.config(
     eslint.configs.recommended,
     tseslint.configs.recommended,
+	query.configs['flat/recommended'],
     {
 		ignores: [
 			"*.config.*js",

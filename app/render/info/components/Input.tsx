@@ -1,6 +1,11 @@
-import React, { useId, useState } from "react";
+import React, { RefObject, useId, useImperativeHandle, useState } from "react";
 import { useDropdown } from "../../common/hooks/useDropdown";
-import { createPortal } from "react-dom";
+
+export type DropdownRef = {
+    value: DropdownOption;
+    setValue: (value: string) => void;
+    index: number;
+};
 
 type DropdownOption = {
     display: string;
@@ -10,14 +15,16 @@ type DropdownOption = {
 type DropdownProps = {
     options: DropdownOption[];
     width: number | "auto" | "full";
-    portal: string;
+    ref?: RefObject<DropdownRef>;
     selected?: number;
     onChange?: (value: DropdownOption) => void;
 };
 
 type InputTextProps = {
+    type: "text" | "password";
     placeholder?: string;
     value?: string;
+    ref?: RefObject<HTMLInputElement>;
     onChange?: (value: string) => void;
 };
 
@@ -26,27 +33,43 @@ type InputProps = {
     width: number | "auto" | "full";
 } & (
     | {
-        type: "text";
+        type: "text" | "password";
+        ref?: RefObject<HTMLInputElement>;
         placeholder?: string;
         value?: string;
         onChange?: (value: string) => void;
     } | {
         type: "dropdown";
         options: DropdownOption[];
+        ref?: RefObject<DropdownRef>;
         selected?: number;
         onChange?: (value: DropdownOption) => void;
     }
 );
 
-const InputDropdown = ({ options, width, portal, selected = 0, onChange }: DropdownProps) => {
-    const { dropdownRef, open, ref, setOpen} = useDropdown();
+const InputDropdown = ({ options, width, ref, selected = 0, onChange }: DropdownProps) => {
+    const { dropdownRef, open, targetRef, setOpen} = useDropdown();
     const [ optionIndex, setOptionIndex ] = useState(selected);
 
     const realWidth = typeof width === "number" ? `${width}px` : width === "full" ? "100%" : "auto";
 
+    useImperativeHandle(ref, () => {
+        return {
+            value: options[optionIndex],
+            setValue(value: string) {
+                const newIndex = options.findIndex((option) => option.value === value);
+                setOptionIndex(newIndex);
+                if (onChange && newIndex != optionIndex) {
+                    onChange(options[newIndex]);
+                }
+            },
+            index: optionIndex,
+        };
+    });
+
     return (
         <>
-            <div className="flex w-full items-center" onClick={() => setOpen(!open)} ref={ref}>
+            <div className="flex w-full items-center" onClick={() => setOpen(!open)} ref={targetRef}>
                 <p className="text-xl font-light w-full">{ options[optionIndex].display }</p>
                 <div className="w-2 h-2 rotate-45 border-b-2 border-r-2 border-solid mr-2"></div>
             </div>
@@ -60,7 +83,7 @@ const InputDropdown = ({ options, width, portal, selected = 0, onChange }: Dropd
                                 setOptionIndex(index);
                                 setOpen(false);
                                 if (onChange) {
-                                    onChange(option);
+                                    onChange(options[index]);
                                 }
                             }}>
                                 { option.display }
@@ -73,12 +96,12 @@ const InputDropdown = ({ options, width, portal, selected = 0, onChange }: Dropd
     );
 };
 
-const InputText = ({ placeholder = "", value = "", onChange }: InputTextProps) => {
+const InputText = ({ type, placeholder = "", value = "", ref, onChange }: InputTextProps) => {
 
     const [ inputValue, setInputValue ] = useState(value);
 
     return (
-        <input type="text" placeholder={placeholder} value={inputValue} onChange={(e) => { 
+        <input type={type} placeholder={placeholder} ref={ref} defaultValue={inputValue} onChange={(e) => { 
             setInputValue(e.target.value);
             if(onChange) { 
                 onChange(inputValue); 
@@ -101,8 +124,11 @@ export const Input = (props: InputProps) => {
                     (() => {
                         switch(props.type) {
                             case "text":
+                            case "password":
                                 return (
                                     <InputText
+                                        type={props.type}
+                                        ref={props.ref}
                                         placeholder={props.placeholder}
                                         value={props.value}
                                         onChange={props.onChange}
@@ -113,7 +139,7 @@ export const Input = (props: InputProps) => {
                                     <InputDropdown
                                         options={props.options}
                                         width={props.width}
-                                        portal={id}
+                                        ref={props.ref}
                                         selected={props.selected}
                                         onChange={props.onChange}
                                     />

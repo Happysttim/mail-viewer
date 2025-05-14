@@ -1,3 +1,3 @@
-export * from "./mail";
+export * from "./stream";
 export * from "./user";
 export * from "./profile";

@@ -3,7 +3,7 @@ import { CommandArgs, CommandMap, CommandName, CommandResult, IdResult, Zod } fr
 import { QueueMessage } from "lib/command/queue";
 import { z } from "zod";
 
-export class CommandTransform<T extends CommandMap> extends Transform {
+export class CommandTransform<T extends CommandMap = CommandMap> extends Transform {
 
     private commands: string[] = [];
     private resultStore: IdResult<T>[] = [];
@@ -41,6 +41,11 @@ export class CommandTransform<T extends CommandMap> extends Transform {
             id,
             commandResult
         });
+    }
+
+    flush() {
+        this.resultStore = [];
+        this.commands = [];
     }
 
     forgetResult(): IdResult<T> | undefined {

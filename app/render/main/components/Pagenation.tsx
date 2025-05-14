@@ -72,7 +72,11 @@ const SelectPageMenu = ({ ref, x, y, current, total, onPageChange }: SelectPageM
             { 
                 [...Array(total).keys()].map((i) => {
                     return (
-                        <button className={`w-8 h-8 rounded-md text-black font-bold mr-2 ${i + 1 == current ? "bg-[#858181]" : "bg-inherit hover:bg-[#BFBFBF]"}`} onMouseDown={() => onPageChange(i + 1)}>{ i + 1 }</button>
+                        <button 
+                            key={i} 
+                            className={`w-8 h-8 rounded-md text-black font-bold mr-2 ${i + 1 == current ? "bg-[#858181]" : "bg-inherit hover:bg-[#BFBFBF]"}`}
+                            onMouseDown={() => onPageChange(i + 1)}
+                        >{ i + 1 }</button>
                     );
                 })
             }
@@ -85,7 +89,7 @@ export const Pagenation = ({ ref, showChunk, total, current, onPageChange, onNex
     const { open, setOpen, dropdownRef, ...prop } = useDropdown();
     const [ position, setPosition ] = useState({ x: 0, y: 0 });
     const handleClick = () => {
-        const { left, bottom } = prop.ref.current?.getBoundingClientRect() || { left: 0, bottom: 0 };
+        const { left, bottom } = prop.targetRef.current?.getBoundingClientRect() || { left: 0, bottom: 0 };
         setPosition({ x: left - 112, y: bottom - 150 });
         setOpen(true);
     };
@@ -105,11 +109,11 @@ export const Pagenation = ({ ref, showChunk, total, current, onPageChange, onNex
             { 
                 [...Array(showChunk).keys()].map((i) => i + Math.max(current - Math.floor(showChunk / 2), 1)).filter((i) => i <= total).map((i) => {
                     return (
-                        <button className={`w-8 h-8 rounded-md text-black mr-2 ${i == current ? "bg-[#858181]" : "bg-inherit hover:bg-[#BFBFBF]"}`} onClick={() => onPageChange(i)}>{ i }</button>
+                        <button key={i} className={`w-8 h-8 rounded-md text-black mr-2 ${i == current ? "bg-[#858181]" : "bg-inherit hover:bg-[#BFBFBF]"}`} onClick={() => onPageChange(i)}>{ i }</button>
                     );
                 })
             }
-            <div ref={prop.ref}>
+            <div ref={prop.targetRef}>
                 <IconButton icon={<OtherIcon />} className="w-8 h-8 items-center justify-center flex mr-2" onClick={handleClick} />
                 {
                     open && <SelectPageMenu ref={dropdownRef} x={position.x} y={position.y} current={current} total={total} chunk={showChunk} onPageChange={(page) => {

@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Panel } from "./components/Panel";
 import { StreamList } from "./components/StreamList";
 import { StreamItem } from "./components/StreamItem";
@@ -13,6 +13,46 @@ import { EachCheckboxTr } from "./components/EachCheckboxTr";
 import { Td } from "./components/Td";
 import { format } from "date-fns";
 import { Pagenation } from "./components/Pagenation";
+import { MailDTO, StreamDTO } from "lib/database/dto";
+import { QueryClient, QueryClientProvider, useSuspenseQuery } from "@tanstack/react-query";
+import { Processing } from "../common/components/Processing";
+import { MailFilterMap, MapParameter } from "app/type";
+import { InvokeMap, StreamExtend } from "app/preload";
+import { Limit } from "./components/Limit";
+
+type MailListType = "get-all-mails" | "get-mail-list-page" | "get-mail-list-filter";
+type MailListTypeProps<K extends MailListType> = {
+    type: K;
+    props: MapParameter<InvokeMap, K>;
+};
+type MailListProps<K extends MailListType> = MapParameter<InvokeMap, K>;
+type StreamProps = {
+    items: StreamExtend[];
+    setStreams: (v: StreamExtend[]) => void;
+    onClick: (v: StreamExtend) => void;
+};
+
+type MailTableProps<K extends MailListType> = {
+    type: K;
+    listProps: MailListProps<K>;
+    items: MailDTO[];
+    total: number;
+    page: number;
+    limit: number;
+    update: number;
+    setMails: (v: MailDTO[]) => void;
+    setPage: (v: number) => void;
+    setTotal: (v: number) => void;
+    onClick: (v: MailDTO) => void;
+};
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+        }
+    }
+});
 
 const LogoutIcon = () => {
     return (
@@ -65,60 +105,139 @@ const MagnifierIcon = () => {
     );
 };
 
+const Stream = ({ items, setStreams, onClick }: StreamProps) => {
+    const { data } = useSuspenseQuery({
+        queryKey: ["stream-profile"],
+        queryFn: () => window.ipcRenderer.invoke("get-all-streams"),
+        retry: false,
+    });
+    
+    useEffect(() => {
+        setStreams(data ?? []);
+    }, [ data ]);
+
+    return (
+        <StreamList 
+            items={items} 
+            onClick={onClick}>
+                {
+                    (v, selected) => 
+                        <StreamItem 
+                            item={v.stream}
+                            defaultName={v.stream.defaultName} 
+                            profileColor={v.stream.profileColor} 
+                            aliasName={v.stream.aliasName}
+                            badge={
+                                v.isError ? "ERROR" :
+                                v.stream.notificate && v.stream.isNew ? "NOTIFICATE" : "NORMAL"
+                            }
+                            selected={selected} />
+                }
+        </StreamList>
+    );
+};
+
+const MailTable = <K extends MailListType>({ type, listProps, items, total, page, limit, update, setTotal, setMails, setPage, onClick }: MailTableProps<K>) => {
+    const { data } = useSuspenseQuery({
+        queryKey: [type, listProps, update],
+        queryFn: async () => {
+            return await window.ipcRenderer.invoke(type, ...listProps);
+        },
+        select: (data) => data as MailDTO[],
+        retry: false,
+    });
+
+    useEffect(() => {
+        setMails(data ?? []);
+    }, [ data ]);
+
+    return (
+        <>
+            <CheckBoxTable bind={items} checked={false}>
+                {
+                    (checked, data) => {
+                        return (
+                            <EachCheckboxTr key={data.mailId} data={data} checked={checked} onChange={() => console.log(data)} height={50}>
+                            {
+                                (data) => {
+                                    const confirmedFont = data.isSeen ? "font-light" : "font-bold";
+                                    const confirmedColor = data.isSeen ? "text-[#646464]" : "text-[#000000]";
+                                    const from = data.fromAddress.match(/(.+)(?=\<.+?@.+?\..+?\>)/i) ?? ["", data.fromAddress];
+
+                                    return (
+                                        <>
+                                            <Td icon={data.isSeen ? <ConfirmedMailIcon /> : <UnconfirmedMailIcon />} className="flex items-center justify-center h-full w-8 mr-2" />
+                                            <Td label={from[1].replaceAll("\"", "")} tooltip={data.fromAddress} className={`w-[150px] overflow-hidden whitespace-nowrap text-ellipsis shrink-0 mr-4 text-sm ${confirmedFont} ${confirmedColor} hover:underline hover:cursor-pointer`} />
+                                            <div className="flex flex-1">
+                                                <Td label={data.subject} tooltip={data.subject} className={`mr-1 text-sm line-clamp-2 text-clip ${confirmedFont} ${confirmedColor} hover:underline hover:cursor-pointer`} />
+                                                <Td icon={<MagnifierIcon />} className="flex h-full w-8 mr-2 cursor-pointer" />
+                                            </div>
+                                            <Td label={format(data.date, "MM-dd HH:mm:ss")} className={`w-[120px] shrink-0 text-sm font-light ${confirmedColor}`} />
+                                        </>
+                                    );
+                                }
+                            }
+                            </EachCheckboxTr>
+                        );
+                    }
+                }
+            </CheckBoxTable>
+            <Pagenation showChunk={5} total={Math.ceil(total / limit)} current={page} onPageChange={(page) => setPage(page)} onNextChunk={() => setPage(page + 5 > Math.ceil(total / limit) ? Math.ceil(total / limit) : page + 5)} onPrevChunk={() => setPage(page - 5 <= 0 ? 1 : page - 5)} />
+        </>
+    );
+};
+
 export const App = () => {
     const [ page, setPage ] = useState(1);
-    const [ total, setTotal ] = useState(100);
-    const dummyAccounts = [
-        {
-            defaultName: "gmlsdyd1023@naver.com",
-            profileColor: "#d2d2d2",
-            notificate: false,
-            selected: false,
-        },
-        {
-            defaultName: "rjadmsdyd1023@naver.com",
-            aliasName: "업무용 메일함",
-            profileColor: "#8ccccc",
-            notificate: true,
-            selected: false,
-        },
-        {
-            defaultName: "happysttim1023@gmail.com",
-            profileColor: "#c82d32",
-            notificate: false,
-            selected: false,
-        },
-    ];
+    const [ total, setTotal ] = useState(0);
+    const [ limit, setLimit ] = useState(10);
+    const [ update, setUpdate ] = useState(0);
+    const [ unseenMails, setUnseenMails ] = useState(0);
+    const [ streams, setStreams ] = useState<StreamExtend[]>([]);
+    const [ selectedStream, setSelectedStream ] = useState<StreamExtend | undefined>(undefined);
+    const [ mailFilter, setMailFilter ] = useState<MailFilterMap>();
+    const [ mails, setMails ] = useState<MailDTO[]>([]);
+    const [ mailListProps, setMailListProps ] = useState<MailListTypeProps<MailListType>>();
 
-    const dummyMails = [
-        {
-            mailId: 1,
-            streamId: "StreamID1",
-            uid: "UID1",
-            isSeen: false,
-            date: "2025-04-09 10:00:00",
-            fromAddress: "from@naver.com",
-            subject: "메일 제목 1",
-        },
-        {
-            mailId: 2,
-            streamId: "StreamID1",
-            uid: "UID2",
-            isSeen: false,
-            date: "2025-03-09 11:01:11",
-            fromAddress: "from@kakao.com",
-            subject: "Hello world",
-        },
-        {
-            mailId: 3,
-            streamId: "StreamID1",
-            uid: "UID3",
-            isSeen: true,
-            date: "2025-04-07 23:10:52",
-            fromAddress: "from@gmail.com",
-            subject: "대충 메일 제목이 길어서 뭐라고 적어야 할지 모르겠지만 아무튼 너무 길다. 대충 메일 제목이 길어서 뭐라고 적어야 할지 모르겠지만 아무튼 너무 길다. 대충 메일 제목이 길어서 뭐라고 적어야 할지 모르겠지만 아무튼 너무 길다. 대충 메일 제목이 길어서 뭐라고 적어야 할지 모르겠지만 아무튼 너무 길다. 이걸 어떻게 적어야할지 모르겠지만 나는 IDE의 여백이 부족해질때까지 계속해서 적어야 한다. 그것이 나의 숙명 ㅇㅇ",
-        },
-    ];
+    useEffect(() => {
+        window.ipcRenderer.on("update-stream", (_, extend: StreamExtend) => {
+            setStreams((prev) => {
+                const index = prev.findIndex((v) => v.stream.streamId === extend.stream.streamId);
+                if (index !== -1) {
+                    prev[index] = extend;
+                } else {
+                    prev.push(extend);
+                }
+                return [ ...prev ];
+            });
+        });
+
+        window.ipcRenderer.on("get-unseen-mails", (_, unseen: number) => {
+            setUnseenMails(unseen);
+        });
+
+        window.ipcRenderer.on("get-total-mails", (_, total: number) => {
+            setTotal(total);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (selectedStream) {
+            const type = mailFilter ? "get-mail-list-filter" : "get-mail-list-page";
+            setMailListProps({
+                type,
+                props: [ selectedStream.stream.streamId, page, limit, mailFilter ],
+            });
+        }
+    }, [ selectedStream, limit, mailFilter, page ]);
+
+    const handleAddStream = () => {
+        window.ipcRenderer.request("request-stream", undefined);
+    };
+
+    const handleLogout = () => {
+        window.ipcRenderer.request("request-logout", undefined);
+    };
 
     return (
         <div className="w-screen h-screen flex flex-col">
@@ -126,58 +245,57 @@ export const App = () => {
             <Screen>
                 <Panel>
                     <PanelItem>
-                        <IconButton label="새 계정 추가" icon={<NewAccountIcon />} className="pl-[9px] lg:pl-0 items-center justify-center flex w-full h-full" />
+                        <IconButton label="새 계정 추가" onClick={handleAddStream} icon={<NewAccountIcon />} className="pl-[9px] lg:pl-0 items-center justify-center flex w-full h-full" />
                     </PanelItem>
                     <PanelItem divider={true}>
-                        <StreamList 
-                            items={dummyAccounts} 
-                            onClick={(v) => console.log(v)}
-                            renderItem={(v, selected) => 
-                                <StreamItem 
-                                    defaultName={v.defaultName} 
-                                    profileColor={v.profileColor} 
-                                    aliasName={v.aliasName}
-                                    notificate={v.notificate}
-                                    selected={selected} />}
-                        />
+                        <QueryClientProvider client={queryClient}>
+                            <Suspense fallback={
+                                <div className="flex justify-center items-center">
+                                    <Processing width={50} height={50} stroke="darkgray"/>
+                                </div>
+                            }>
+                                <Stream items={streams} setStreams={setStreams} onClick={(v) => setSelectedStream(v)} />
+                            </Suspense>
+                        </QueryClientProvider>
                     </PanelItem>
                     <PanelItem bottomPosition={true}>
-                        <IconButton label="로그아웃" icon={<LogoutIcon />} className="pl-[9px] lg:pl-0 items-center justify-center flex w-full h-full" />
+                        <IconButton label="로그아웃" onClick={handleLogout} icon={<LogoutIcon />} className="pl-[9px] lg:pl-0 items-center justify-center flex w-full h-full" />
                     </PanelItem>
                 </Panel>
                 <Content>
-                    <Suspense fallback={<TablePageFallback />}>
-                        <h1 className="text-3xl h-8">확인안한 메일 {  }</h1>
-                        <CheckBoxTable bind={dummyMails} checked={false}>
-                            {
-                                (checked, data) => {
-                                    return (
-                                        <EachCheckboxTr key={data.mailId} data={data} checked={checked} onChange={() => console.log(data)} height={50}>
-                                        {
-                                            (data) => {
-                                                const comfirmedFont = data.isSeen ? "font-light" : "font-bold";
-                                                const comfirmedColor = data.isSeen ? "text-[#646464]" : "text-[#000000]";
-
-                                                return (
-                                                    <>
-                                                        <Td icon={data.isSeen ? <ConfirmedMailIcon /> : <UnconfirmedMailIcon />} className="flex items-center justify-center h-full w-8 mr-2" />
-                                                        <Td label={data.fromAddress} className={`w-[150px] shrink-0 mr-4 text-sm ${comfirmedFont} ${comfirmedColor} hover:underline hover:cursor-pointer`} />
-                                                        <div className="flex flex-1">
-                                                            <Td label={data.subject} className={`mr-1 text-sm line-clamp-2 text-clip ${comfirmedFont} ${comfirmedColor} hover:underline hover:cursor-pointer`} />
-                                                            <Td icon={<MagnifierIcon />} className="flex h-full w-8 mr-2 cursor-pointer" />
-                                                        </div>
-                                                        <Td label={format(data.date, "MM-dd HH:mm:ss")} className={`w-[120px] shrink-0 text-sm font-light ${comfirmedColor}`} />
-                                                    </>
-                                                );
-                                            }
-                                        }
-                                        </EachCheckboxTr>
-                                    );
-                                }
-                            }
-                        </CheckBoxTable>
-                        <Pagenation ref={null} showChunk={5} total={total} current={page} onPageChange={(page) => setPage(page)} onNextChunk={() => setPage(page + 5)} onPrevChunk={() => setPage(page - 5 <= 0 ? 1 : page - 5)} />
-                    </Suspense>
+                    {
+                        selectedStream && mailListProps ? (
+                            <QueryClientProvider client={queryClient}>
+                                <div className="w-full flex">
+                                    <h1 className="text-3xl h-8 mr-4">확인안한 메일 { unseenMails }건</h1>
+                                    <button className="p-2 border border-gray-500 bg-white rounded-md target:bg-gray-500" onClick={() => setUpdate(Date.now())}>새로고침</button>
+                                    <div className="float-right">
+                                        <Limit limitOptions={[10, 20, 30, 40, 50]} value={limit} onChange={(value) => setLimit(value)} />
+                                    </div>
+                                </div>
+                                <Suspense fallback={<TablePageFallback />}>
+                                    <MailTable
+                                        type={mailListProps.type}
+                                        listProps={mailListProps.props}
+                                        items={mails}
+                                        total={total}
+                                        page={page}
+                                        limit={limit}
+                                        update={update}
+                                        setMails={setMails}
+                                        setPage={setPage}
+                                        setTotal={setTotal}
+                                        onClick={(v) => console.log(v)}
+                                    />
+                                </Suspense>
+                            </QueryClientProvider>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full w-full">
+                                <h1 className="text-3xl h-8">프로필을 선택해주세요</h1>
+                                <p className="text-sm text-[#646464]">메일을 확인하기 위해서는 프로필을 선택해야합니다.</p>
+                            </div>
+                        )
+                    }
                 </Content>
             </Screen>
         </div>

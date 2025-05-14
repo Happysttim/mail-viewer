@@ -2,11 +2,11 @@ import React, { ReactNode, useState } from "react";
 
 type StreamListProp<T> = {
     items: T[],
-    renderItem: (value: T, selected: boolean) => ReactNode,
+    children: (value: T, selected: boolean) => ReactNode,
     onClick: (value: T) => void,
 };
 
-export const StreamList = <T,>({ items, renderItem, onClick }: StreamListProp<T>) => {
+export const StreamList = <T,>({ items, children, onClick }: StreamListProp<T>) => {
 
     const [ select, setSelect ] = useState(-1);
     
@@ -19,7 +19,7 @@ export const StreamList = <T,>({ items, renderItem, onClick }: StreamListProp<T>
                             setSelect(idx);
                             onClick(v); 
                         }}>
-                            { renderItem(v, select == idx) }
+                            { children(v, select == idx) }
                         </div>
                     );
                 })

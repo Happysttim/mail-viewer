@@ -1,7 +1,7 @@
 import { SearchQuery } from "./search";
 
-export type Range = `${number}:${number}` | `${number}`;
-export type FetchPeek = "FLAGS" | "INTERNALDATE" | "RFC822" | "RFC822.HEADER" | "BODYSTRUCTURE";
+export type Range = string;
+export type FetchPeek = "FLAGS" | "INTERNALDATE" | "RFC822" | "RFC822.HEADER" | "BODYSTRUCTURE" | "UID";
 export type FlagOperation = "FLAGS" | "+FLAGS" | "-FLAGS" | "FLAGS.SILENT" | "+FLAGS.SILENT" | "-FLAGS.SILENT";
 export type Flag = "\\Seen" | "\\Answered" | "\\Flagged" | "\\Deleted" | "\\Draft" | "\\Recent";
 export type FetchArgument = {

@@ -1,7 +1,7 @@
-import { ProfileDTO, StreamDTO, UserDTO } from "lib/database/dto";
+import { StreamDTO, UserDTO } from "lib/database/dto";
 import { withDatabase } from "lib/database/initialize";
-import { MailService } from "./mail";
-import { ProfileService } from "./profile";
+import { StreamService } from "./stream";
+import { MailHistoryService } from "./mail-history";
 
 export class UserService {
 
@@ -13,7 +13,7 @@ export class UserService {
         this.path = path;
     }
 
-    async createStream(address: StreamDTO): Promise<boolean> {
+    async createStream(stream: StreamDTO): Promise<boolean> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
@@ -23,46 +23,27 @@ export class UserService {
                     mailPassword,
                     protocol,
                     host,
-                    port
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    port,
+                    tls,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate,
+                    isNew
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
-                address.streamId,
-                address.mailId,
-                address.mailPassword,
-                address.protocol,
-                address.host,
-                address.port
-            );
-        });
-
-        if (result) {
-            return result.changes > 0;
-        }
-
-        return false;
-    }
-    
-    async updateStream(stream: StreamDTO): Promise<boolean> {
-        const result = await withDatabase(this.path, async (database) => {
-            database.pragma(`key='${this.user.password}'`);
-            return database.prepare(`
-                UPDATE 
-                    StreamTable 
-                SET
-                    mailId=?,
-                    mailPassword=?,
-                    protocol=?,
-                    host=?,
-                    port=?
-                WHERE
-                    streamId=?
-            `).run(
+                stream.streamId,
                 stream.mailId,
                 stream.mailPassword,
                 stream.protocol,
                 stream.host,
                 stream.port,
-                stream.streamId,
+                stream.tls ? 1 : 0,
+                stream.defaultName,
+                stream.aliasName,
+                stream.profileColor,
+                stream.notificate ? 1 : 0,
+                0,
             );
         });
 
@@ -81,27 +62,7 @@ export class UserService {
         }) ?? false;
     }
 
-    async profile(streamId: string): Promise<ProfileService | undefined> {
-        const result = await withDatabase(this.path, async (database) => {
-            database.pragma(`key='${this.user.password}'`);
-            return database.prepare<unknown[], ProfileDTO>(`
-                SELECT
-                    streamId,
-                    defaultName,
-                    aliasName,
-                    profileColor,
-                    notificate
-                FROM
-                    ProfileTable
-                WHERE
-                    streamId=?    
-            `).get(streamId);
-        });
-
-        return result ? new ProfileService(this.path, this.user, result) : undefined;
-    }
-
-    async stream(streamId: string): Promise<MailService | undefined> {
+    async streamService(streamId: string): Promise<StreamService | undefined> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
@@ -111,7 +72,13 @@ export class UserService {
                     mailPassword,
                     protocol,
                     host,
-                    port
+                    port,
+                    tls,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate,
+                    isNew
                 FROM
                     StreamTable
                 WHERE
@@ -119,10 +86,10 @@ export class UserService {
             `).get(streamId);
         });
 
-        return result ? new MailService(this.path, this.user, result) : undefined;
+        return result ? new StreamService(this.path, this.user, result) : undefined;
     }
 
-    async streams(): Promise<MailService[]> {
+    async mailHistoryService(streamId: string): Promise<MailHistoryService | undefined> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare<unknown[], StreamDTO>(`
@@ -132,15 +99,68 @@ export class UserService {
                     mailPassword,
                     protocol,
                     host,
-                    port
+                    port,
+                    tls,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate
+                FROM
+                    StreamTable
+                WHERE
+                    streamId=?    
+            `).get(streamId);
+        });
+
+        return result ? new MailHistoryService(this.path, this.user, result) : undefined;
+    }
+
+    async stream(streamId: string): Promise<StreamDTO | undefined> {
+        return await withDatabase(this.path, async (database) => {
+            database.pragma(`key='${this.user.password}'`);
+            return database.prepare<unknown[], StreamDTO>(`
+                SELECT
+                    streamId,
+                    mailId,
+                    mailPassword,
+                    protocol,
+                    host,
+                    port,
+                    tls,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate
+                FROM
+                    StreamTable
+                WHERE
+                    streamId=?    
+            `).get(streamId);
+        });
+    }
+
+    async streams(): Promise<StreamDTO[]> {
+        const result = await withDatabase(this.path, async (database) => {
+            database.pragma(`key='${this.user.password}'`);
+            return database.prepare<unknown[], StreamDTO>(`
+                SELECT
+                    streamId,
+                    mailId,
+                    mailPassword,
+                    protocol,
+                    host,
+                    port,
+                    tls,
+                    defaultName,
+                    aliasName,
+                    profileColor,
+                    notificate
                 FROM
                     StreamTable   
             `).all();
         });
 
-        return result ? result.map<MailService>(
-            (value) => new MailService(this.path, this.user, value)
-        ) : [];
+        return result ?? [];
     }
 
 }

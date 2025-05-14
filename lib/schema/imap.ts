@@ -174,7 +174,8 @@ export const FetchHeaderSchema = z.object({
     fetchType: z.literal("RFC822.HEADER"),
     fetchHeader: z.array(
         z.object({
-            id: z.number(),
+            fetchID: z.number(),
+            fetchUID: z.number().optional(),
             header: HeaderSchema,
         })
     )

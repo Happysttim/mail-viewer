@@ -8,33 +8,19 @@ type Pipe<T extends CommandMap> = {
     commandTransform: CommandTransform<T>;
     parser: Parser<T>;
 };
-type PipeMap<T extends CommandMap = CommandMap> = Map<new () => T, Pipe<T>>;
 type NetworkMap<T extends CommandMap = CommandMap> = Map<string, MailNetwork<T>>;
 
 export class StreamManager {
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
-
-    private pipeMap: PipeMap<any> = new Map();
     private networkMap: NetworkMap<any> = new Map();
 
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
-    register<T extends CommandMap>(commandMap: new () => T, pipe: Pipe<T>) {
-        this.pipeMap.set(commandMap, pipe);
-    }
-
-    async createStream<T extends CommandMap>(commandMap: new () => T, hostOption: HostOption, id?: string): Promise<MailNetwork<T> | undefined> {
-        const pipe = this.pipeMap.get(commandMap);
-        if (!pipe) {
-            return undefined;
-        }
-        const command = new commandMap();
-        const streamId = id ?? await this.generateStreamID();
-
+    async createStream<T extends CommandMap>(commandMap: T, pipe: Pipe<T>, hostOption: HostOption, streamId: string): Promise<MailNetwork<T> | undefined> {
         const stream = new MailNetwork<T>(
             streamId,
-            command,
+            commandMap,
             pipe.commandTransform,
             pipe.parser,
             hostOption,
@@ -62,7 +48,7 @@ export class StreamManager {
         }
     }
 
-    private async generateStreamID(): Promise<string> {
+    async generateStreamID(): Promise<string> {
         let generate: string = "";
         do {
             generate = uid(16);

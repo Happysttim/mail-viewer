@@ -7,6 +7,7 @@ import { CommandMap, HostOption } from "lib/type";
 import { Handler } from "./";
 import { Parser } from "lib/parser";
 import EventEmitter from "node:events";
+import { commandEvent } from "lib/event";
 
 export enum SocketStatus {
     CONNECTING = "CONNECTING",
@@ -24,7 +25,7 @@ type EventMap = {
 type EventName = keyof EventMap;
 type EventCallbackArgs<K extends EventName> = Parameters<EventMap[K]>;
 
-export class MailNetwork<T extends CommandMap> extends EventEmitter {
+export class MailNetwork<T extends CommandMap = CommandMap> extends EventEmitter {
 
     readonly hostOption: HostOption;
     readonly id: string;
@@ -33,7 +34,9 @@ export class MailNetwork<T extends CommandMap> extends EventEmitter {
     private commandMap: T;
     private commandTransform: CommandTransform<T>;
     private parser: Parser<T>;
+    private receiver: Receiver<T>;
     private commandHandler: Handler<T> | undefined = undefined;
+    
     private status: SocketStatus = SocketStatus.DISCONNECT;
 
     constructor(
@@ -49,22 +52,28 @@ export class MailNetwork<T extends CommandMap> extends EventEmitter {
         this.commandTransform = commandTransform;
         this.parser = parser;
         this.hostOption = hostOption;
-        this.setSocketStatus(SocketStatus.CONNECTING);
+        this.receiver = new Receiver(this.commandTransform, this.parser);
+        this.setSocketStatus(SocketStatus.DISCONNECT);
+    }
+
+    get socketStatus(): SocketStatus {
+        return this.status;
     }
 
     handler(): Handler<typeof this.commandMap> | undefined {
         return this.commandHandler;
     }
 
-    connect(): Promise<void> {
+    async connect(): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                const receiver = new Receiver(this.commandTransform, this.parser);
+                this.commandHandler = new Handler(this.commandTransform);
+                
                 this.socket = this.hostOption.secure ? tls_connect(
                     {
                         host: this.hostOption.hostname,
                         port: this.hostOption.port,
-                        rejectUnauthorized: this.hostOption.tls?.rejectUnauthorized ?? true,
+                        rejectUnauthorized: this.hostOption.tls?.rejectUnauthorized ?? false,
                     }
                 ) : tcp_connect(
                     {
@@ -72,36 +81,57 @@ export class MailNetwork<T extends CommandMap> extends EventEmitter {
                         port: this.hostOption.port,
                     }
                 );
-        
+
+                this.commandTransform.pipe(this.socket, { end: false });
+                this.socket.pipe(this.receiver, { end: false });
+
                 this.socket.once("connect", () => {
                     this.setSocketStatus(SocketStatus.CONNECTED);
-                    this.commandHandler = new Handler(this.commandTransform);
                     resolve();
-                    pipeline(this.commandTransform, this.socket!!, receiver, (err) => {
-                        this.emit("stream-pipeline-error", err);
-                    });
                 });
         
-                this.socket.on("error", (err) => {
-                    this.emit("socket-error", err);
-                    this.setSocketStatus(SocketStatus.ERROR);
+                this.socket.once("error", (err) => {
+                    if (err) {
+                        console.log(err);
+                        this.setSocketStatus(SocketStatus.DISCONNECT);
+                        this.emit("socket-error", err);
+                        reject(err);
+                    }
                 });
             } catch(err) {
-                this.socket = undefined;
+                console.log(`ERROR ${err}`);
                 this.setSocketStatus(SocketStatus.ERROR);
                 reject(err);
             }
         });
     }
 
-    disconnect() {
-        if (this.socket && this.status == SocketStatus.CONNECTED) {
-            this.socket.end(() => {
-                this.setSocketStatus(SocketStatus.DISCONNECT);
-                this.socket = undefined;
-            });
-        } else {
-            this.emit("socket-error", "Wrong disconnect request. cause: invalid socket");
+    disconnect(): Promise<boolean> {
+        return new Promise((resolve, _) => {
+            if (this.socket && this.status == SocketStatus.CONNECTED) {
+                this.socket.end(() => {
+                    this.setSocketStatus(SocketStatus.DISCONNECT);
+                    resolve(true);
+                });
+                this.commandTransform.flush();
+            } else {
+                resolve(false);
+                this.emit("socket-error", "Wrong disconnect request. cause: invalid socket");
+            }
+        });
+    }
+
+    completeAllDisconnect(): void {
+        if (this.socket && !this.socket.destroyed) {
+            this.socket.destroy();
+        }
+
+        if (!this.commandTransform.destroyed) {
+            this.commandTransform.destroy();
+        }
+
+        if (!this.receiver.destroyed) {
+            this.receiver.destroy();
         }
     }
 

@@ -1,0 +1,7 @@
+{
+  "tailwindCSS.config": "./tailwind.config.js",
+  "svg.preview.background": "editor",
+  "terminal.integrated.fontFamily": "Consolas, 'Courier New', 'D2Coding', 'NanumGothicCoding'",
+  "terminal.integrated.defaultEncoding": "utf-8",
+  "terminal.integrated.shellArgs.windows": ["/K", "chcp 65001"],
+}

@@ -1,11 +1,10 @@
 import { Parser } from "./";
 import { TypeOf, z } from "zod";
-import { CapabilitySchema, FetchResultSchema, FetchSchema, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/schema/imap";
+import { CapabilitySchema, FetchResultSchema, FetchSchema, ListSchema, SearchSchema, SelectSchema, UIDErrorResultSchema } from "lib/schema/imap";
 import { bodystructure } from "./common/structure";
 import { FetchArgument, FetchPeek, UIDArgument } from "lib/command/imap/type";
 import { contentSchema } from "./common/contents";
 import { ErrorSchema } from "lib/schema/common";
-import { ListSchema } from "lib/schema/pop3";
 import { ImapCommandMap } from "lib/command";
 import { SearchQuery } from "lib/command/imap";
 import { IdResult } from "lib/type";
@@ -263,7 +262,7 @@ export class ImapParser extends Parser<ImapCommandMap> {
         const fields = (() => {
             const fields = [...
                 bufferUtf8.matchAll(
-                    ["FLAGS", "INTERNALDATE", "BODYSTRUCTURE"].includes(peek) ?
+                    ["FLAGS", "INTERNALDATE", "BODYSTRUCTURE", "UID"].includes(peek) ?
                     /^\W\s(\d+)\sFETCH\s\(.+?\s([\W\w\s]+?)(?:\)|\sUID\s(\d+)\))$/gm :
                     peek === "RFC822.HEADER" ?
                     /^\W\s(\d+)\sFETCH\s\(.+?\s(?:\{(\d+)\})(?:[\s\r\n]([\W\w\s]+?))(?:\r\n\r\n)(?:\sUID\s(\d+))?\)$/gm :
@@ -408,7 +407,8 @@ export class ImapParser extends Parser<ImapCommandMap> {
                     fetchType: "RFC822.HEADER",
                     fetchHeader: fetchData.map((v) => {
                         return {
-                            id: v.fetchID,
+                            fetchID: v.fetchID,
+                            fetchUID: v.fetchUID,
                             header: this.header(v.header),
                         };
                     }),

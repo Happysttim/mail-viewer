@@ -10,14 +10,17 @@ export type StreamDTO = {
     protocol: string;
     host: string;
     port: number;
-};
-
-export type ProfileDTO = {
-    streamId: string;
+    tls: boolean;
     defaultName: string;
     aliasName: string;
     profileColor: string;
     notificate: boolean;
+    isNew: boolean;
+};
+export type MailHistoryDTO = {
+    streamId: string;
+    fetchId: number;
+    uid: string;
 };
 
 export type MailDTO = {

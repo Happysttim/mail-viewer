@@ -7,8 +7,6 @@ import { commandEvent } from "lib/event";
 type EOFType = "UNDEFINED" | "EOF" | "NOT_EOF";
 
 export default class Receiver<T extends CommandMap> extends Transform {
-
-    private readonly tag = "Receiver";
     
     private commandTransform: CommandTransform<T>;
     private parser: Parser<T>;
