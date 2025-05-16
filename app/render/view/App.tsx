@@ -36,18 +36,20 @@ export const App = () => {
         queryKey: [streamDto, mailDto],
         queryFn: async () => {
             if (streamDto && mailDto) {
-                return await window.ipcRenderer.invoke("read-mail", streamDto, mailDto);
+                const result = await window.ipcRenderer.invoke("read-mail", streamDto, mailDto);
+                if (!result) {
+                    throw new Error("Result is undefined");
+                }
+                return result;
             } else {
                 return skipToken;
             }
         },
+        retry: true,
     });
 
     useEffect(() => {
         if (safeMimeArray(data)) {
-
-            console.log(JSON.stringify(data, null, 2));
-
             setDisplay(() => {
                 const htmlMime = data.filter((value) => value.contentType.includes("text/html"));
                 if (htmlMime.length === 0) {

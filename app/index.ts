@@ -609,7 +609,6 @@ export class App {
 
     async pop3RetrContents(id: string, handler: Handler<Pop3CommandMap>): Promise<ContentSchemaType | undefined> {
         const retrResult = await handler.command("retr").execute(parseInt(id));
-
         if (!safeResult(retrResult)) {
             return;
         }
@@ -770,8 +769,9 @@ export class App {
                 const isSeen = flagFetches[i].flagSchema.flags.includes("\\Seen");
                 const date = dateFetches[i].internalDate;
                 const header = headerFetches[i].header;
+                
 
-                await historyService.insertMailHistory(0, headerFetches[i].fetchUID!!.toString());
+                await historyService.insertMailHistory(0, flagFetches[i].fetchUID!!.toString());
 
                 await streamService.newMail(
                     headerFetches[i].fetchID,

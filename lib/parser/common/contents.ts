@@ -92,7 +92,7 @@ function contentHeaderSchema (header: string): z.infer<typeof ContentHeaderSchem
                     parameter["boundary"] = boundary;
                 }
                 
-                parameter["charset"] = extractParameterInHeader(header, "charset");
+                parameter["charset"] = extractParameterInHeader(header, "charset")?.split(";")[0] ?? undefined;
             }
                 break;
             case "content-transfer-encoding":

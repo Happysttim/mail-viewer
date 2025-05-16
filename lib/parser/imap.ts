@@ -8,6 +8,7 @@ import { ErrorSchema } from "lib/schema/common";
 import { ImapCommandMap } from "lib/command";
 import { SearchQuery } from "lib/command/imap";
 import { IdResult } from "lib/type";
+import { format, isDate } from "date-fns";
 
 const OK = (tag: string): string => `${tag} OK`;
 const NO = (tag: string): string => `${tag} NO`;
@@ -272,54 +273,71 @@ export class ImapParser extends Parser<ImapCommandMap> {
                 )
             ];
 
+            const fetchIdAndUid = [...
+                bufferUtf8.matchAll(/^\W\s(\d+)\sFETCH\s\((?:[\s\S]*?)UID\s+(\d+)(?:[\s\S]*?)\)$/gm)
+            ];
+
             if (fields.length === 0) {
                 return [];
             }
 
             if (["INTERNALDATE", "BODYSTRUCTURE"].includes(peek)) {
-                return fields.map<FetchField<"NO_RFC">>((v) => {
+                return fields.map<FetchField<"NO_RFC">>((v, i) => {
+                    const date = (() => {
+                        if (peek === "INTERNALDATE") {
+                            const internalDate = v[2].match(/INTERNALDATE\s(.+)/);
+                            if (internalDate && internalDate.length > 0) {
+                                return new Date(internalDate[1].replaceAll("\"", ""));
+                            }
+
+                            return new Date(v[2]);
+                        }
+
+                        return new Date();
+                    })();
+
                     return {
                         fetchType: "NO_RFC",
-                        fetchID: parseInt(v[1]),
-                        data: v[2],
-                        fetchUID: v[3] ? parseInt(v[3]) : undefined,
+                        fetchID: parseInt(fetchIdAndUid[i][1]),
+                        data: peek === "INTERNALDATE" ? date.toString() : v[2],
+                        fetchUID: fetchIdAndUid[i][2] ? parseInt(fetchIdAndUid[i][2]) : undefined,
                     };
                 });
             }
 
             if (peek === "FLAGS") {
-                return fields.map<FetchField<"NO_RFC">>((v) => {
+                return fields.map<FetchField<"NO_RFC">>((v, i) => {
                     const flags = v[2].match(/\((.+)\)/);
                     return {
                         fetchType: "NO_RFC",
-                        fetchID: parseInt(v[1]),
+                        fetchID: parseInt(fetchIdAndUid[i][1]),
                         data: flags ? flags[1] : "",
-                        fetchUID: v[3] ? parseInt(v[3]) : undefined,
+                        fetchUID: fetchIdAndUid[i][2] ? parseInt(fetchIdAndUid[i][2]) : undefined,
                     };
                 });
             }
 
             if (peek === "RFC822.HEADER") {
-                return fields.map<FetchField<"RFC822.HEADER">>((v) => {
+                return fields.map<FetchField<"RFC822.HEADER">>((v, i) => {
                     return {
                         fetchType: "RFC822.HEADER",
-                        fetchID: parseInt(v[1]),
+                        fetchID: parseInt(fetchIdAndUid[i][1]),
                         size: parseInt(v[2]),
                         header: v[3],
-                        fetchUID: v[4] ? parseInt(v[4]) : undefined,
+                        fetchUID: fetchIdAndUid[i][2] ? parseInt(fetchIdAndUid[i][2]) : undefined,
                     };
                 });
             }
 
             if (peek === "RFC822") {
-                return fields.map<FetchField<"RFC822">>((v) => {
+                return fields.map<FetchField<"RFC822">>((v, i) => {
                     return {
                         fetchType: "RFC822",
-                        fetchID: parseInt(v[1]),
+                        fetchID: parseInt(fetchIdAndUid[i][1]),
                         size: parseInt(v[2]),
                         header: v[3],
                         body: v[4],
-                        fetchUID: v[5] ? parseInt(v[5]) : undefined,
+                        fetchUID: fetchIdAndUid[i][2] ? parseInt(fetchIdAndUid[i][2]) : undefined,
                     };
                 });
             }

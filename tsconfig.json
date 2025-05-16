@@ -11,7 +11,7 @@
         "resolveJsonModule": true,
         "types": ["node"],
         "baseUrl": ".",
-        "typeRoots": ["./node_modules/@types"],
+        "typeRoots": ["./node_modules/@types", "./types"],
         "paths": {
             "lib/*": ["lib/*"],
             "app/*": ["app/*"],

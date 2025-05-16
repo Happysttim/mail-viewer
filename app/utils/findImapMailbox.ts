@@ -1,17 +1,17 @@
 import { ImapCommandMap } from "lib/command";
 import { Handler } from "lib/stream/network";
 import { safeResult } from "./safeResult";
-import { decode } from "./decodeUtf7";
+import { imap } from "safe-utf7";
 
 export const findImapMailbox = async (handler: Handler<ImapCommandMap>): Promise<string> => {
-    const search = ["all", "allmail", "ÀüÃ¼", "¸ðµç", "ÀüÃ¼¸ÞÀÏ", "¸ðµç¸ÞÀÏ", "ÀüÃ¼¸ÞÀÏÇÔ", "¸ðµç¸ÞÀÏÇÔ"];
+    const search = ["all", "allmail", "ì „ì²´", "ëª¨ë“ ", "ì „ì²´ë©”ì¼", "ëª¨ë“ ë©”ì¼", "ì „ì²´ë©”ì¼í•¨", "ëª¨ë“ ë©”ì¼í•¨"];
 
-    const listResult = await handler.command("list").execute("\"\"", "\"*\"");
+    const listResult = await handler.command("list").execute("", "*");
 
     if (!safeResult(listResult)) {
         return "INBOX";
     }
 
-    const boxes = listResult.schema.result.map((box) => decode(box.boxName));
-    return boxes.find((v) => search.includes(v.toLowerCase().replaceAll(" ", ""))) || "INBOX";
+    const boxes = listResult.schema.result.map((box) => imap.decode(box.boxName));
+    return boxes.find((v) => search.indexOf(v.toLowerCase().replaceAll(" ", ""))) || "INBOX";
 };

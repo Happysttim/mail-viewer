@@ -30,25 +30,25 @@ export class ImapTransform extends CommandTransform<ImapCommandMap> {
                 case "expunge":
                     return `${this.imapTag} EXPUNGE`;
                 case "fetch":
-                    return `${this.imapTag} FETCH ${args[0]} ${args[1]}`;
+                    return `${this.imapTag} FETCH \"${args[0]}\" \"${args[1]}\"`;
                 case "idle":
                     return `${this.imapTag} IDLE`;
                 case "list":
-                    return `${this.imapTag} LIST ${args[0]} ${args[1]}`;
+                    return `${this.imapTag} LIST \"${args[0]}\" \"${args[1]}\"`;
                 case "login":
-                    return `${this.imapTag} LOGIN ${args[0]} ${args[1]}`;
+                    return `${this.imapTag} LOGIN \"${args[0]}\" \"${args[1]}\"`;
                 case "logout":
                     return `${this.imapTag} LOGOUT`;
                 case "noop":
                     return `${this.imapTag} NOOP`;
                 case "search":
-                    return `${this.imapTag} SEARCH ${args[0]} ${(args[1] as SearchQuery).queryString}`;
+                    return `${this.imapTag} SEARCH \"${args[0]}\" ${(args[1] as SearchQuery).queryString}`;
                 case "select":
-                    return `${this.imapTag} SELECT ${args[0]}`;
+                    return `${this.imapTag} SELECT \"${args[0]}\"`;
                 case "status":
-                    return `${this.imapTag} STATUS ${args[0]} ${args[1]}`;
+                    return `${this.imapTag} STATUS \"${args[0]}\" \"${args[1]}\"`;
                 case "store":
-                    return `${this.imapTag} STORE ${args[0]} ${args[1]}`;
+                    return `${this.imapTag} STORE \"${args[0]}\" \"${args[1]}\"`;
                 case "uid":
                     switch (args[0]) {
                         case "SEARCH":
