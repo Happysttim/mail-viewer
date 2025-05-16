@@ -51,12 +51,13 @@ export default defineConfig({
             extensions: [".tsx", ".jsx", ".ts", ".js"]
         },
         build: {
-            outDir: "build",
+            outDir: "build/renderer",
             rollupOptions: {
                 input: {
                     entry: path.join(__dirname, "./app/render/entry.html"),
                     main: path.join(__dirname, "./app/render/main.html"),
                     info: path.join(__dirname, "./app/render/info.html"),
+                    view: path.join(__dirname, "./app/render/view.html"),
                 },
             }
         },

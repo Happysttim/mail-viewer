@@ -57,7 +57,7 @@ export class UserService {
     async deleteStream(streamId: string): Promise<boolean> {
         return await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            const result = database.prepare("DELETE FROM StreamTable FROM streamId=?").run(streamId);
+            const result = database.prepare("DELETE FROM StreamTable WHERE streamId=?").run(streamId);
             return result.changes > 0;
         }) ?? false;
     }

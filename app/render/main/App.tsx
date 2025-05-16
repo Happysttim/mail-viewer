@@ -36,6 +36,7 @@ type MailListProps<K extends MailListType> = MapParameter<InvokeMap, K>;
 type StreamProps = {
     items: StreamExtend[];
     setStreams: (v: StreamExtend[]) => void;
+    setSelectedStream: (v: StreamExtend | undefined) => void;
     onClick: (v: StreamExtend) => void;
 };
 
@@ -61,7 +62,7 @@ const queryClient = new QueryClient({
     }
 });
 
-const Stream = ({ items, setStreams, onClick }: StreamProps) => {
+const Stream = ({ items, setStreams, setSelectedStream, onClick }: StreamProps) => {
     const { data } = useSuspenseQuery({
         queryKey: ["stream-profile"],
         queryFn: () => window.ipcRenderer.invoke("get-all-streams"),
@@ -87,7 +88,12 @@ const Stream = ({ items, setStreams, onClick }: StreamProps) => {
                                 v.isError ? "ERROR" :
                                 v.stream.notificate && v.stream.isNew ? "NOTIFICATE" : "NORMAL"
                             }
-                            selected={selected} />
+                            selected={selected}
+                            onDelete={(item) => {
+                                setStreams(items.filter((value) => value.stream.streamId != item.streamId));
+                                setSelectedStream(undefined);
+                            }}
+                            />
                 }
         </StreamList>
     );
@@ -216,7 +222,7 @@ export const App = () => {
                                     <Processing width={50} height={50} stroke="darkgray"/>
                                 </div>
                             }>
-                                <Stream items={streams} setStreams={setStreams} onClick={(v) => setSelectedStream(v)} />
+                                <Stream setSelectedStream={setSelectedStream} items={streams} setStreams={setStreams} onClick={(v) => setSelectedStream(v)} />
                             </Suspense>
                         </QueryClientProvider>
                     </PanelItem>

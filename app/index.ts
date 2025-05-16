@@ -20,11 +20,7 @@ import { ContentSchemaType } from "lib/schema/common";
 
 type LoginStatus = "LOGIN" | "LOGIN_FAIL" | "LOGIN_SUCCESS";
 
-if (!electronApp.isPackaged) {
-    dotenv.config({ path: ".env.development.local" });
-}
-
-const browserPath = electronApp.isPackaged ? "." : `http://${process.env.SERVER_HOST || "localhost"}:${process.env.PORT || "5173"}`;
+const browserPath = electronApp.isPackaged ? path.join(__dirname, "./renderer") : "http://localhost:5173";
 const UPDATE_INTERVAL = 2000;
 const MAIL_LOGIN_TIMEOUT = 5000;
 
@@ -523,7 +519,30 @@ export class App {
                 return false;
             }
         });
+
+        ipcMain.handle("delete-mail-address", async (_, [ streamId ]: [ string ]) => {
+            if (!this.userService) {
+                return false;
+            }
+
+            const streamService = await this.userService.streamService(streamId);
+            if (!streamService) {
+                return false;
+            }
+
+            const stream = this.streamManager.stream(streamId) as MailNetwork<ImapCommandMap> | MailNetwork<Pop3CommandMap>;
+            const result = await this.userService.deleteStream(streamId);
+
+            if (!stream) {
+                return false;
+            }
+
+            await stream.disconnect();
+            return result;
+        });
     }
+
+    
 
     ipcRendererRequest(browserWindow: BrowserWindow) {
         browserWindow.on("minimize", () => {

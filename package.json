@@ -11,7 +11,8 @@
     "preview": "electron-vite preview",
     "build": "electron-vite build",
     "test": "tsx lib/test/index.ts",
-    "lint": "pnpm dlx eslint"
+    "lint": "pnpm dlx eslint",
+    "deploy": "electron-builder --windows nsis:ia32"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +37,7 @@
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.0.1",
     "electron": "35.2.1",
+    "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "emailjs-mime-codec": "^2.0.9",
     "eslint": "^9.12.0",
@@ -65,5 +67,28 @@
   },
   "overrides": {
     "electron": "35.2.1"
+  },
+  "build": {
+    "productName": "MailViewer",
+    "appId": "kr.happysttim.mailviewer",
+    "asar": true,
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "zip",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "directories": {
+      "output": "./out/"
+    }
   }
 }

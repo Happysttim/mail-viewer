@@ -4,6 +4,7 @@
 /app/render/assets/
 /build/
 /lib/test/
+/out/
 .env
 .env.local
 .env.test.local

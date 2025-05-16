@@ -8,12 +8,13 @@ type StreamItemProps = {
     item: StreamDTO;
     defaultName: string;
     profileColor: string;
-    aliasName?: string;
     badge: BadgeType;
+    onDelete: (item: StreamDTO) => void;
+    aliasName?: string;
     selected?: boolean;
 };
 
-export const StreamItem = ({ item, defaultName, aliasName, profileColor, badge = "NORMAL", selected = false }: StreamItemProps) => {
+export const StreamItem = ({ item, defaultName, aliasName, profileColor, onDelete, badge = "NORMAL", selected = false }: StreamItemProps) => {
     const name = aliasName || defaultName;
     const { open, setOpen, targetRef, dropdownRef } = useDropdown();
     const [ position, setPosition ] = useState({ x: 0, y: 0 });
@@ -68,7 +69,11 @@ export const StreamItem = ({ item, defaultName, aliasName, profileColor, badge =
                                 label: "삭제하기",
                                 labelColor: "#FF0000",
                                 onClick: () => {
-                                    console.log("Delete Clicked");
+                                    window.ipcRenderer.invoke("delete-mail-address", item.streamId).then((result) => {
+                                        if (result) {
+                                            onDelete(item);
+                                        }
+                                    });
                                     setOpen(false);
                                 },
                             },
