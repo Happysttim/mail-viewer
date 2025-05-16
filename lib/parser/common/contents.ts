@@ -92,7 +92,7 @@ function contentHeaderSchema (header: string): z.infer<typeof ContentHeaderSchem
                     parameter["boundary"] = boundary;
                 }
                 
-                parameter["charset"] = extractParameterInHeader(header, "charset") ?? "US-ASCII";
+                parameter["charset"] = extractParameterInHeader(header, "charset");
             }
                 break;
             case "content-transfer-encoding":

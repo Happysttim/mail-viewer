@@ -3,5 +3,7 @@
   "svg.preview.background": "editor",
   "terminal.integrated.fontFamily": "Consolas, 'Courier New', 'D2Coding', 'NanumGothicCoding'",
   "terminal.integrated.defaultEncoding": "utf-8",
-  "terminal.integrated.shellArgs.windows": ["/K", "chcp 65001"],
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "files.eol": "\n"
 }

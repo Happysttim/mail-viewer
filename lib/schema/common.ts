@@ -33,7 +33,7 @@ export const ContentHeaderSchema: z.ZodType<ContentHeaderSchemaType> = z.object(
     contentDescription: z.string().optional(),
 });
 
-type ContentSchemaType = {
+export type ContentSchemaType = {
     contentHeader: z.infer<typeof ContentHeaderSchema>,
     mimePart: string,
     contentBody?: string,

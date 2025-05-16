@@ -26,6 +26,7 @@ export type MailHistoryDTO = {
 export type MailDTO = {
     mailId: number,
     streamId: string;
+    fetchId: number;
     uid: string;
     isSeen: boolean;
     date: string;

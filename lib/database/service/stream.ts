@@ -6,10 +6,8 @@ type SearchOption = {
         page: number;
         limit: number;
     },
-    date?: {
-        startDate: string;
-        endDate: string;
-    },
+    startDate?: string;
+    endDate?: string;
     seen?: boolean;
     fromLike?: string;
     subjectLike?: string;
@@ -79,20 +77,22 @@ export class StreamService {
         return false;
     }
 
-    async newMail(uid: string, isSeen: boolean, date: string, fromAddress: string, subject: string): Promise<boolean> {
+    async newMail(fetchId: number, uid: string, isSeen: boolean, date: string, fromAddress: string, subject: string): Promise<boolean> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
             return database.prepare(`
                 INSERT INTO MailTable (
                     streamId,
+                    fetchId,
                     uid,
                     isSeen,
                     date,
                     fromAddress,
                     subject
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
             `).run(
                 this.stream.streamId,
+                fetchId,
                 uid,
                 isSeen ? 1 : 0,
                 date,
@@ -135,6 +135,7 @@ export class StreamService {
                 SELECT
                     mailId,
                     streamId,
+                    fetchId,
                     uid,
                     isSeen,
                     date,
@@ -167,6 +168,7 @@ export class StreamService {
                 SELECT
                     mailId,
                     streamId,
+                    fetchId,
                     uid,
                     isSeen,
                     date,
@@ -205,10 +207,10 @@ export class StreamService {
         return mails ?? 0;
     }
 
-    async read(mailId: number): Promise<number> {
+    async read(uid: string): Promise<number> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return database.prepare("UPDATE MailTable SET isSeen=TRUE WHERE mailId=?").run(mailId);
+            return database.prepare("UPDATE MailTable SET isSeen=TRUE WHERE uid=?").run(uid);
         });
 
         return result ? result.changes : 0;
@@ -216,32 +218,33 @@ export class StreamService {
 
     private selectMailSyntax(searchOption: SearchOption): [string, [...unknown[]]] {
         const limit = searchOption.pagenation ? " LIMIT ? OFFSET ?" : "";
-        const date = searchOption.date ? " AND date BETWEEN ? AND ?" : "";
+        const startDate = searchOption.startDate ? " AND date>=?" : "";
+        const endDate = searchOption.startDate ? " AND date<=?" : "";
         const seen = searchOption.seen !== undefined ? " AND isSeen=?" : "";
-        const from = searchOption.fromLike ? " AND fromAddress LIKE %?%" : "";
-        const subject = searchOption.subjectLike ? " AND subject LIKE %?%" : "";
+        const from = searchOption.fromLike ? " AND fromAddress LIKE ?" : "";
+        const subject = searchOption.subjectLike ? " AND subject LIKE ?" : "";
         
         const values: unknown[] = [];
-        if (searchOption.pagenation) {
-            const pagenation = searchOption.pagenation;
-            values.push(pagenation.limit, (pagenation.page - 1) * pagenation.limit);
-        }
 
-        values.push(searchOption.subjectLike);
-        values.push(searchOption.fromLike);
+        values.push(searchOption.startDate);
+        values.push(searchOption.endDate);
+        values.push(searchOption.subjectLike ? `%${searchOption.subjectLike}%` : undefined);
+        values.push(searchOption.fromLike ? `%${searchOption.fromLike}%` : undefined);
         
         if (searchOption.seen !== undefined) {
             values.push(searchOption.seen ? 1 : 0);
         }
 
-        if (searchOption.date) {
-            values.push(searchOption.date.startDate, searchOption.date.endDate);
+        if (searchOption.pagenation) {
+            const pagenation = searchOption.pagenation;
+            values.push(pagenation.limit, (pagenation.page - 1) * pagenation.limit);
         }
 
         return [`
             SELECT
                 mailId,
                 streamId,
+                fetchId,
                 uid,
                 isSeen,
                 date,
@@ -251,10 +254,11 @@ export class StreamService {
                 MailTable
             WHERE
                 streamId=?
-                ${date}
-                ${seen}
-                ${from}
+                ${startDate}
+                ${endDate}
                 ${subject}
+                ${from}
+                ${seen}
             ORDER BY
                 mailId DESC
             ${limit}

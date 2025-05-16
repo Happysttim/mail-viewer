@@ -104,7 +104,8 @@ export class UserService {
                     defaultName,
                     aliasName,
                     profileColor,
-                    notificate
+                    notificate,
+                    isNew
                 FROM
                     StreamTable
                 WHERE
@@ -130,7 +131,8 @@ export class UserService {
                     defaultName,
                     aliasName,
                     profileColor,
-                    notificate
+                    notificate,
+                    isNew
                 FROM
                     StreamTable
                 WHERE
@@ -154,7 +156,8 @@ export class UserService {
                     defaultName,
                     aliasName,
                     profileColor,
-                    notificate
+                    notificate,
+                    isNew
                 FROM
                     StreamTable   
             `).all();

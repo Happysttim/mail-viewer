@@ -1,8 +1,8 @@
-import React, { RefObject, useId, useImperativeHandle, useState } from "react";
+import React, { RefObject, useEffect, useId, useImperativeHandle, useState } from "react";
 import { useDropdown } from "../../common/hooks/useDropdown";
 
 export type DropdownRef = {
-    value: DropdownOption;
+    selectedOption: DropdownOption;
     setValue: (value: string) => void;
     index: number;
 };
@@ -48,14 +48,14 @@ type InputProps = {
 );
 
 const InputDropdown = ({ options, width, ref, selected = 0, onChange }: DropdownProps) => {
-    const { dropdownRef, open, targetRef, setOpen} = useDropdown();
+    const { dropdownRef, open, targetRef, setOpen } = useDropdown();
     const [ optionIndex, setOptionIndex ] = useState(selected);
 
     const realWidth = typeof width === "number" ? `${width}px` : width === "full" ? "100%" : "auto";
 
     useImperativeHandle(ref, () => {
         return {
-            value: options[optionIndex],
+            selectedOption: options[optionIndex],
             setValue(value: string) {
                 const newIndex = options.findIndex((option) => option.value === value);
                 setOptionIndex(newIndex);
@@ -96,9 +96,15 @@ const InputDropdown = ({ options, width, ref, selected = 0, onChange }: Dropdown
     );
 };
 
-const InputText = ({ type, placeholder = "", value = "", ref, onChange }: InputTextProps) => {
+const InputText = ({ type, placeholder = "", value, ref, onChange }: InputTextProps) => {
 
-    const [ inputValue, setInputValue ] = useState(value);
+    const [ inputValue, setInputValue ] = useState("");
+
+    useEffect(() => {
+        if (value) {
+            setInputValue(value);
+        }
+    }, [ value ]);
 
     return (
         <input type={type} placeholder={placeholder} ref={ref} defaultValue={inputValue} onChange={(e) => { 

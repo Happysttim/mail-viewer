@@ -54,8 +54,8 @@ export class ImapTransform extends CommandTransform<ImapCommandMap> {
                         case "SEARCH":
                             return `${this.imapTag} UID SEARCH ${(args[1] as SearchQuery).queryString}`;
                         case "STORE": {
-                            const storeArgs = args[1] as StoreArgument;
-                            return `${this.imapTag} UID STORE ${storeArgs.operation} ${storeArgs.flag}`;
+                            const storeArgs = args[1] as StoreArgument & FetchArgument;
+                            return `${this.imapTag} UID STORE ${storeArgs.range} ${storeArgs.operation} ${storeArgs.flag}`;
                         }
                         case "FETCH": {
                             const fetchArgs = args[1] as FetchArgument;

@@ -17,27 +17,37 @@ export const Limit = ({ value, limitOptions, onChange }: LimitProps) => {
     }, [ value ]);
 
     return (
-        <div className="w-28 p-3">
-            <p ref={dropdownRef} className="w-full inset-ring-2 shadow-xl bg-gray-400 rounded-md text-sm text-black tracking-tighter font-bold" onClick={() => setOpen(!open)}>{ limit }</p>
-            <div ref={targetRef} className="absolute w-full p-3">
-                {
-                    limitOptions && limitOptions.map((value) => {
-                        return (
-                            <p
-                                onMouseDown={() => {
-                                    setLimit(value);
-                                    if (onChange) {
-                                        onChange(value);
-                                    }
-                                }} 
-                                className={`${ limit === value ? "bg-gray-400" : "bg-white" } tracking-tighter text-black not-last:border-b not-last:border-gray-400`}
-                            >
-                                { value }
-                            </p>
-                        );
-                    })
-                }
+        <div className="w-28">
+            <div 
+                ref={dropdownRef} 
+                className="p-2 border border-gray-400 rounded-md flex items-center justify-center" 
+                onClick={() => setOpen(!open)}
+            >
+                <span className="text-black tracking-tighter font-bold w-full">{ limit }통</span>
+                <div className="w-2.5 h-2.5 border-b-2 border-r-2 border-black rotate-45 mr-1"></div>
             </div>
+            {
+                open && <div ref={targetRef} className="absolute border border-gray-400 w-28">
+                    {
+                        limitOptions.map((value, i) => {
+                            return (
+                                <p
+                                    key={i}
+                                    onMouseDown={() => {
+                                        setLimit(value);
+                                        if (onChange) {
+                                            onChange(value);
+                                        }
+                                    }} 
+                                    className={`${ limit === value ? "bg-gray-400" : "bg-white" } w-full p-3 tracking-tighter text-black not-last:border-b not-last:border-gray-400`}
+                                >
+                                    { value }통
+                                </p>
+                            );
+                        })
+                    }
+                </div>
+            }
         </div>
     );
 

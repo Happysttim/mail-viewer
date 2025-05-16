@@ -43,6 +43,7 @@ async function createUserDatabase(user: UserDTO) {
             CREATE TABLE IF NOT EXISTS MailTable (
                 mailId INTEGER PRIMARY KEY AUTOINCREMENT,
                 streamId TEXT NOT NULL,
+                fetchId INTEGER NOT NULL,
                 uid TEXT NOT NULL,
                 isSeen NUMERIC NOT NULL,
                 date NUMERIC NOT NULL,

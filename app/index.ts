@@ -1,8 +1,8 @@
-import { app as electronApp, BrowserWindow, ipcMain } from "electron";
+import { app as electronApp, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "node:path";
 import dotenv from "dotenv";
 import { addUser, existsUser, user } from "lib/database";
-import { StreamDTO, UserDTO } from "lib/database/dto";
+import { MailDTO, StreamDTO, UserDTO } from "lib/database/dto";
 import { UserService } from "lib/database/service";
 import { Handler, MailNetwork, SocketStatus, StreamManager } from "lib/stream/network";
 import { ImapCommandMap, Pop3CommandMap } from "lib/command";
@@ -12,9 +12,11 @@ import { timeout } from "./utils/timeout";
 import { createQuery } from "lib/command/imap";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
-import { decodeMime } from "./utils/decodeMime";
+import { decodeMime, decodeWords } from "./utils/decodeMime";
 import { safeResult, safeUIDFetchResult, safeUIDSearchResult } from "./utils/safeResult";
 import { findImapMailbox } from "./utils/findImapMailbox";
+import { MailFilter } from "./type";
+import { ContentSchemaType } from "lib/schema/common";
 
 type LoginStatus = "LOGIN" | "LOGIN_FAIL" | "LOGIN_SUCCESS";
 
@@ -22,7 +24,7 @@ if (!electronApp.isPackaged) {
     dotenv.config({ path: ".env.development.local" });
 }
 
-const browserPath = electronApp.isPackaged ? "." : `http://${process.env.SERVER_HOST || "localhost"}:${process.env.PORTT || "9000"}`;
+const browserPath = electronApp.isPackaged ? "." : `http://${process.env.SERVER_HOST || "localhost"}:${process.env.PORT || "5173"}`;
 const UPDATE_INTERVAL = 2000;
 const MAIL_LOGIN_TIMEOUT = 5000;
 
@@ -37,6 +39,8 @@ export class App {
     private entryWindow: BrowserWindow | undefined;
     private mainWindow: BrowserWindow | undefined;
     private infoWindow: BrowserWindow | undefined;
+    private mailViewWindow: BrowserWindow | undefined;
+
     private userService: UserService | undefined;
     private streamManager = new StreamManager();
     private streamLoginMap: Map<string, LoginStatus> = new Map();
@@ -57,7 +61,7 @@ export class App {
             webPreferences: {
                 contextIsolation: true,
                 nodeIntegration: false,
-                preload: path.join(__dirname, "preload.js")
+                preload: path.join(__dirname, "preload/preload.js")
             }
         });
 
@@ -80,7 +84,7 @@ export class App {
             webPreferences: {
                 contextIsolation: true,
                 nodeIntegration: false,
-                preload: path.join(__dirname, "preload.js")
+                preload: path.join(__dirname, "preload/preload.js")
             }
         });
 
@@ -104,7 +108,7 @@ export class App {
             webPreferences: {
                 contextIsolation: true,
                 nodeIntegration: false,
-                preload: path.join(__dirname, "preload.js")
+                preload: path.join(__dirname, "preload/preload.js")
             }
         });
 
@@ -116,6 +120,30 @@ export class App {
         }
 
         this.ipcRendererRequest(this.infoWindow);
+    }
+
+    initMailViewWindow() {
+        this.mailViewWindow = new BrowserWindow({
+            width: 1050,
+            height: 1000,
+            focusable: true,
+            resizable: true,
+            titleBarStyle: "hidden",
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+                preload: path.join(__dirname, "preload/preload.js")
+            }
+        });
+
+        if (!electronApp.isPackaged) {
+            this.mailViewWindow.loadURL(`${browserPath}/view.html`);
+            this.mailViewWindow.webContents.openDevTools();
+        } else {
+            this.mailViewWindow.loadFile(`${browserPath}/view.html`);
+        }
+
+        this.ipcRendererRequest(this.mailViewWindow);
     }
 
     ipcMainHook() {
@@ -191,8 +219,25 @@ export class App {
             if (this.mainWindow) {
                 this.initInfoWindow();
                 if (streamDto && this.infoWindow) {
-                    this.infoWindow.webContents.on("did-finish-load", () => {
+                    this.infoWindow.webContents.once("did-finish-load", () => {
                         this.infoWindow!!.webContents.send("request-stream", streamDto);
+                    });
+                }
+            }
+        });
+
+        ipcMain.on("request-mailview", async (_, [ mailDto ]: [ MailDTO ]) => {
+            if (!this.userService) {
+                return;
+            }
+
+            const streamDto = await this.userService.stream(mailDto.streamId);
+
+            if (this.mainWindow && streamDto) {
+                this.initMailViewWindow();
+                if (this.mailViewWindow) {
+                    this.mailViewWindow.webContents.once("did-finish-load", () => {
+                        this.mailViewWindow!!.webContents.send("request-mailview", streamDto, mailDto);
                     });
                 }
             }
@@ -240,6 +285,40 @@ export class App {
             }));
         });
 
+        ipcMain.handle("read-mail", async (_, [ streamDto, mailDto ]: [ StreamDTO, MailDTO ]) => {
+            if (!this.userService) {
+                return;
+            }
+
+            const network = this.streamManager.stream(streamDto.streamId);
+            const streamService = await this.userService.streamService(streamDto.streamId);
+            if (!network || !streamService) {
+                return;
+            }
+
+            const handler = network.handler();
+            if (!handler) {
+                return;
+            }
+
+            const contents = await (
+                streamDto.protocol === "imap" ?
+                this.imapFetchContents(mailDto.uid, handler as Handler<ImapCommandMap>) :
+                this.pop3RetrContents(mailDto.fetchId.toString(), handler as Handler<Pop3CommandMap>)
+            );
+
+            if (!contents) {
+                return;
+            }
+
+            await streamService.read(mailDto.uid);
+            if (this.mainWindow) {
+                this.mainWindow.webContents.send("update-mail");
+            }
+
+            return decodeMime(contents);
+        });
+
         ipcMain.handle("get-mail-list-page", async (_, [ streamId, page, limit ]: [ string, number, number ]) => {
             if (!this.userService) {
                 return;
@@ -281,6 +360,51 @@ export class App {
                     page,
                     limit,
                 }
+            });
+        });
+
+        ipcMain.handle("get-mail-list-filter", async (_, [ streamId, page, limit, filter ]: [ string, number, number, MailFilter ]) => {
+            if (!this.userService) {
+                return;
+            }
+
+            const streamService = await this.userService.streamService(streamId);
+            if (!streamService) {
+                return;
+            }
+
+            this.selectedStreamId = streamId;
+            const unseen = (await streamService.searchMails({
+                ...filter,
+            })).length;
+
+            const total = (await streamService.searchMails(filter)).length;
+
+            if (this.mainWindow) { 
+                this.mainWindow.webContents.send("get-total-mails", total);
+                this.mainWindow.webContents.send("get-unseen-mails", unseen);
+
+                if (streamService.stream.isNew) {
+                    const streamDto: StreamDTO = {
+                        ...streamService.stream,
+                        isNew: false,
+                    };
+
+                    await streamService.updateStream(streamDto);
+                
+                    this.mainWindow.webContents.send("update-stream", {
+                        stream: { ...streamDto },
+                        isError: false,
+                    });
+                }
+            }
+
+            return await streamService.searchMails({
+                pagenation: {
+                    page,
+                    limit,
+                },
+                ...filter
             });
         });
 
@@ -440,6 +564,45 @@ export class App {
         }, UPDATE_INTERVAL);
     }
 
+    async imapFetchContents(id: string, handler: Handler<ImapCommandMap>): Promise<ContentSchemaType | undefined> {
+        const fetchResult = await handler.command("uid").execute("FETCH", {
+            range: id,
+            peek: "RFC822",
+        });
+
+        if (!safeUIDFetchResult(fetchResult, "RFC822")) {
+            return;
+        }
+
+        const contents = fetchResult.schema.result.uidResult.fetch.fetchResult.fetchContent;
+        if (contents.length === 0) {
+            return;
+        }
+
+        await handler.command("uid").execute("STORE", {
+            operation: "+FLAGS",
+            flag: "\\Seen",
+            range: id,
+        });
+
+        return contents[0].mailContent.content;
+    }
+
+    async pop3RetrContents(id: string, handler: Handler<Pop3CommandMap>): Promise<ContentSchemaType | undefined> {
+        const retrResult = await handler.command("retr").execute(parseInt(id));
+
+        if (!safeResult(retrResult)) {
+            return;
+        }
+
+        const contents = retrResult.schema.result.content;
+        if (!contents) {
+            return;
+        }
+
+        return contents;
+    }
+
     async updateStream(streamId: string): Promise<boolean> {
         if (!this.userService) {
             return false;
@@ -476,12 +639,25 @@ export class App {
         await streamService.updateStream(
             {
                 ...streamService.stream,
-                isNew: fetched
+                isNew: fetched > 0
             }
         );
 
         if (this.mainWindow) {
             if (streamService.stream.notificate && fetched) {
+                if (!this.mainWindow.isFocused()) {
+                    const notification = new Notification({
+                        title: `${streamService.stream.aliasName} 계정 메일 알림`,
+                        body: `총 ${fetched}건의 새로운 메일이 왔습니다!`
+                    });
+
+                    notification.on("click", () => {
+                        this.mainWindow?.focus();
+                    });
+                    notification.show();
+                }
+                
+
                 this.mainWindow.webContents.send("update-stream", {
                     stream: {
                         ...streamService.stream,
@@ -500,9 +676,9 @@ export class App {
         return true;
     }
 
-    async fetchImapHistory(streamId: string, network: MailNetwork<ImapCommandMap>): Promise<boolean> {
+    async fetchImapHistory(streamId: string, network: MailNetwork<ImapCommandMap>): Promise<number> {
         if (!this.userService) {
-            return false;
+            return 0;
         }
 
         const historyService = await this.userService.mailHistoryService(streamId);
@@ -510,7 +686,7 @@ export class App {
         const handler = network.handler();
 
         if (!historyService || !streamService || !handler) {
-            return false;
+            return 0;
         }
 
         const latestHistory = await historyService.latestMailHistory("uid");
@@ -519,7 +695,7 @@ export class App {
             const box = await findImapMailbox(handler);
             const selectResult = await handler.command("select").execute(box);
             if (!safeResult(selectResult)) {
-                return false;
+                return 0;
             }
 
             const latestUID = await (async () => {
@@ -534,7 +710,7 @@ export class App {
             })();
 
             if (latestHistory && latestHistory.uid === latestUID.toString()) {
-                return false;
+                return 0;
             }
 
             const flagResult = await handler.command("uid").execute("FETCH", {
@@ -557,7 +733,7 @@ export class App {
                 !safeUIDFetchResult(dateResult, "INTERNALDATE") ||
                 !safeUIDFetchResult(headerResult, "RFC822.HEADER")
             ) {
-                return false;
+                return 0;
             }
 
             const flagFetches = flagResult.schema.result.uidResult.fetch.fetchResult.fetchFlag;
@@ -565,7 +741,7 @@ export class App {
             const headerFetches = headerResult.schema.result.uidResult.fetch.fetchResult.fetchHeader;
 
             if (flagFetches.length != dateFetches.length || dateFetches.length != headerFetches.length) {
-                return false;
+                return 0;
             }
 
             for (let i = 0; i < flagFetches.length; i++) {
@@ -579,11 +755,12 @@ export class App {
                 await historyService.insertMailHistory(0, headerFetches[i].fetchUID!!.toString());
 
                 await streamService.newMail(
+                    headerFetches[i].fetchID,
                     headerFetches[i].fetchUID!!.toString(),
                     isSeen,
                     date,
-                    decodeMime(header.from),
-                    decodeMime(header.subject),  
+                    decodeWords(header.from),
+                    decodeWords(header.subject),  
                 );
 
                 log({
@@ -592,6 +769,8 @@ export class App {
                     context: `Stream(${streamId}) 에서 새로운 메일이 감지되었습니다 제목: ${header.subject}`,
                 });
             }
+
+            return flagFetches.length;
         } catch(e) {
             log({
                 type: LogType.ERROR,
@@ -599,10 +778,10 @@ export class App {
                 context: `Stream(${streamId}) 에 오류가 발생하였습니다. 오류: ${e}`,
             });
 
-            return false;
+            return 0;
         }
 
-        return true;
+        return 0;
     }
 
     async updateImapHistory(streamId: string, network: MailNetwork<ImapCommandMap>) {
@@ -638,8 +817,6 @@ export class App {
                         const deleteHistory = await historyService.deleteOneMailHistory(0, uid);
                         const deleteMail = await streamService.remove(uid);
 
-                        console.log(uid, deleteHistory, deleteMail);
-
                         if(!deleteHistory || !deleteMail) {
                             log({
                                 type: LogType.ERROR,
@@ -666,8 +843,8 @@ export class App {
             const targetUIDs = await Promise.all(seenResults.map((seenUID) => streamService.mail(seenUID.toString())));
             await Promise.all(targetUIDs
                 .filter((dto) => dto != undefined)
-                .map(async ({ mailId }) => {
-                    await streamService.read(mailId);
+                .map(async ({ uid }) => {
+                    await streamService.read(uid);
                 })
             );
         } catch(e) {
@@ -679,9 +856,9 @@ export class App {
         }
     }
 
-    async fetchPop3History(streamId: string, network: MailNetwork<Pop3CommandMap>): Promise<boolean> {
+    async fetchPop3History(streamId: string, network: MailNetwork<Pop3CommandMap>): Promise<number> {
         if (!this.userService) {
-            return false;
+            return 0;
         }
 
         const historyService = await this.userService.mailHistoryService(streamId);
@@ -689,7 +866,7 @@ export class App {
         const handler = network.handler();
 
         if (!historyService || !streamService || !handler) {
-            return false;
+            return 0;
         }
 
         const latest = await historyService.latestMailHistory("fetchId");
@@ -700,7 +877,7 @@ export class App {
 
             if (!await this.mailLogin(streamService.stream, network)) {
                 this.streamLoginMap.set(streamId, "LOGIN_FAIL");
-                return false;
+                return 0;
             }
 
             this.streamLoginMap.set(streamId, "LOGIN_SUCCESS");
@@ -708,29 +885,30 @@ export class App {
             const uidlResult = await handler.command("uidl").execute();
 
             if (!safeResult(uidlResult)) {
-                return false;
+                return 0;
             }
 
             if (!latest) {
                 const last = uidlResult.schema.result.findLast((value) => value);
                 if (!last) {
-                    return false;
+                    return 0;
                 }
 
                 const retrResult = await handler.command("retr").execute(last.seq);
                 if (!safeResult(retrResult)) {
-                    return false;
+                    return 0;
                 }
 
                 await historyService.insertMailHistory(last.seq, last.uid);
 
                 const { date, from, subject } = retrResult.schema.result;
                 await streamService.newMail(
+                    last.seq,
                     last.uid,
                     false,
                     date,
-                    decodeMime(from),
-                    decodeMime(subject)
+                    decodeWords(from),
+                    decodeWords(subject)
                 );
 
                 log({
@@ -741,7 +919,7 @@ export class App {
             } else {
                 const find = uidlResult.schema.result.findIndex((value) => value.uid === latest.uid);
                 if (find + 1 >= uidlResult.schema.result.length) {
-                    return false;
+                    return 0;
                 }
 
                 const subUIDLs = uidlResult.schema.result.slice(find + 1);
@@ -753,11 +931,12 @@ export class App {
                     }
                     const { date, from, subject } = retrResult.schema.result;
                     await streamService.newMail(
+                        uidl.seq,
                         uidl.uid,
                         false,
                         date,
-                        decodeMime(from),
-                        decodeMime(subject)
+                        decodeWords(from),
+                        decodeWords(subject)
                     );
 
                     log({
@@ -766,6 +945,8 @@ export class App {
                         context: `Stream(${streamId}) 에서 새로운 메일을 감지하였습니다 제목: ${subject}`,
                     });
                 }
+
+                return subUIDLs.length;
             }
         } catch(e) {
             log({
@@ -774,10 +955,10 @@ export class App {
                 context: `Stream(${streamId}) 에서 오류가 발생하였습니다 오류: ${e}`,
             });
 
-            return false;
+            return 0;
         }
 
-        return true;
+        return 0;
     }
 
     async updatePop3History(streamId: string, network: MailNetwork<Pop3CommandMap>) {

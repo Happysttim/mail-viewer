@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TitleBar } from "../common/TitleBar";
-import { DropdownRef, Input } from "./components/Input";
-import { Checkbox, CheckboxRef } from "./components/Checkbox";
+import { DropdownRef, Input } from "../common/components/Input";
+import { Checkbox, CheckboxRef } from "../common/components/Checkbox";
 import { Avatar } from "./components/Avatar";
-import { Button } from "./components/Button";
+import { Button } from "../common/components/Button";
 import { Validate, ValidateRef } from "../common/components/Validate";
 import { StreamDTO } from "lib/database/dto";
 
@@ -67,7 +67,7 @@ export const App = () => {
                         "insert-mail-address", 
                         mailIdRef.current.value, 
                         mailPasswordRef.current.value, 
-                        dropdownRef.current.value.value, 
+                        dropdownRef.current.selectedOption.value, 
                         addressRef.current.value, 
                         parseInt(portRef.current.value), 
                         sslRef.current.value,
@@ -88,7 +88,7 @@ export const App = () => {
                         streamId: streamMemory.streamId,
                         mailId: mailIdRef.current.value,
                         mailPassword: mailPasswordRef.current.value,
-                        protocol: dropdownRef.current.value.value,
+                        protocol: dropdownRef.current.selectedOption.value,
                         host: addressRef.current.value,
                         port: parseInt(portRef.current.value),
                         tls: sslRef.current.value,
