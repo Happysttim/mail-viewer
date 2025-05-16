@@ -133,8 +133,8 @@ export const App = () => {
                     </div>
                 </div>
                 <div className="form-control">
-                    <Input type="text" label="서버 주소" ref={addressRef} width={350} placeholder="ex) pop.naver.com" />
-                    <Input type="text" label="서버 포트" ref={portRef} width={150} placeholder="995" />
+                    <Input type="text" label="서버 주소" ref={addressRef} width={350} placeholder="서버 주소를 입력해주세요." />
+                    <Input type="text" label="서버 포트" ref={portRef} width={150} placeholder="포트 번호" />
                 </div>
                 <div className="form-control">
                     <Validate className="text-sm text-red-600" causes={
