@@ -1,6 +1,7 @@
 import { StreamDTO, MailDTO, UserDTO, MailHistoryDTO } from "lib/database/dto";
 import { withDatabase } from "lib/database";
 
+type Order = "fetchId" | "uid";
 type SearchOption = {
     pagenation?: {
         page: number;
@@ -115,6 +116,22 @@ export class StreamService {
         });
     }
 
+    async removeRange(order: Order, range: string[]): Promise<number> {
+        const mails = await withDatabase(this.path, async (database) => {
+            database.pragma(`key='${this.user.password}'`);
+            return range.filter((id) => {
+                const result = database.prepare(`DELETE FROM MailTable WHERE ${order}=?`).run(id);
+                if (result) {
+                    return result.changes > 0;
+                }
+
+                return false;
+            }).length;
+        });
+        
+        return mails ?? 0;
+    }
+
     async remove(uid: string): Promise<boolean> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
@@ -185,17 +202,17 @@ export class StreamService {
     async readAll(): Promise<boolean> {
         const result = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return database.prepare("UPDATE MailTable SET isSeen=TRUE FROM streamId=? AND isSeen=FALSE").run(this.stream.streamId);
+            return database.prepare("UPDATE MailTable SET isSeen=TRUE WHERE streamId=? AND isSeen=FALSE").run(this.stream.streamId);
         });
         
         return result ? result.changes > 0 : false;
     }
 
-    async readRange(mailIds: number[]): Promise<number> {
+    async readRange(order: Order, range: string[]): Promise<number> {
         const mails = await withDatabase(this.path, async (database) => {
             database.pragma(`key='${this.user.password}'`);
-            return mailIds.filter((mailId) => {
-                const result = database.prepare("UPDATE MailTable SET isSeen=TRUE FROM mailId=? AND isSeen=FALSE").run(mailId);
+            return range.filter((id) => {
+                const result = database.prepare(`UPDATE MailTable SET isSeen=TRUE WHERE ${order}=? AND isSeen=FALSE`).run(id);
                 if (result) {
                     return result.changes > 0;
                 }

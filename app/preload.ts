@@ -23,7 +23,9 @@ export type InvokeMap = {
     "get-mail-list-filter": (streamId: string, page: number, limit: number, filterMap?: MailFilter) => MailDTO[];
     "read-mail": (streamDto: StreamDTO, mailDto: MailDTO) => Mime[];
     "read-all-mail": (streamId: string) => boolean;
-    "read-range-mail": (streamId: string, range: number[]) => boolean;
+    "read-range-mails": (streamDto: StreamDTO, range: string[]) => boolean;
+    "delete-range-mails": (streamDto: StreamDTO, range: string[]) => boolean; 
+    "delete-mail": (streamDto: StreamDTO, id: string) => boolean;
 };
 
 export type RequestMap = {
@@ -33,6 +35,7 @@ export type RequestMap = {
     "request-mailview": MailDTO;
     "request-mail-list": string;
     "request-mail": number;
+    "request-close-mailview": undefined;
     "request-close-info": undefined;
     "request-win-control": "CLOSE" | "MINIMUM" | "MAXIMUM" | "UNMAXIMUM";
 };

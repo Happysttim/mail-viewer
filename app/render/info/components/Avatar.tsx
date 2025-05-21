@@ -41,7 +41,7 @@ export const Avatar = ({ onChange, color }: AvatarProps) => {
             }} className=" w-32 h-32 rounded-full border border-[#9A9A9A] m-auto mt-5 cursor-pointer" onClick={() => setOpen(true)}></div>
             {
                 open && <Overlay>
-                    <div className="absolute z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-auto h-auto bg-white rounded-md p-2 border border-gray-100">
+                    <div className="z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-auto h-auto bg-white rounded-md p-2 border border-gray-100">
                         <ColorPicker
                             defaultValue={selectColor}
                             ref={ref}

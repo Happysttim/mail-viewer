@@ -6,6 +6,7 @@ import { Processing } from "../common/components/Processing";
 import { Overlay } from "../common/components/Overlay";
 import { format } from "date-fns";
 import { Mime } from "app/type";
+import { Confirm, ConfirmRef } from "../common/components/Confirm";
 
 const safeMimeArray = (mimes: Mime[] | typeof skipToken): mimes is Mime[] => {
     return typeof mimes === "object";
@@ -29,6 +30,7 @@ export const App = () => {
     const [ contentIdMap, setContentIdMap ] = useState<Map<string, string>>();
     const [ attaches, setAttaches ] = useState<Mime[]>();
     const [ done, setDone ] = useState(false);
+    const confirmRef = useRef<ConfirmRef>(null);
 
     const divRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +106,19 @@ export const App = () => {
             setMailDTO(mailDto);
         });
     }, []);
+
+    const handleRemove = async () => {
+        if (streamDto && mailDto) {
+            await window.ipcRenderer.invoke(
+                "delete-mail", 
+                streamDto, 
+                streamDto.protocol === "imap" ? 
+                mailDto.uid : mailDto.fetchId.toString()
+            );
+
+            window.ipcRenderer.request("request-close-mailview", undefined);
+        }
+    };
     
     return (
         <div className="w-screen h-screen flex flex-col">
@@ -112,12 +127,24 @@ export const App = () => {
                 <p className="font-semibold text-[32px] tracking-tighter">
                     { mailDto?.subject ?? "" }
                 </p>
-                <p className="text-sm text-black font-bold tracking-tighter">
-                    { mailDto?.fromAddress ?? "" }
-                </p>
-                <p className="text-sm text-gray-600 mr-4 font-light">
-                    { format(mailDto?.date ?? new Date(), "yyyy년 MM월 dd일 HH시 mm분 ss초") }
-                </p>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <p className="text-sm text-gray-600 mr-4 font-light">
+                            { format(mailDto?.date ?? new Date(), "yyyy년 MM월 dd일 HH시 mm분 ss초") }
+                        </p>
+                        <p className="text-sm text-black font-bold tracking-tighter">
+                            { mailDto?.fromAddress ?? "" }
+                        </p>
+                    </div>
+                    <button className="p-1 pr-3 pl-3 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center mr-4" onClick={() => {
+                        if (confirmRef.current && !confirmRef.current.isOpen) {
+                            confirmRef.current.open();
+                        }
+                    }}>삭제</button>
+                    <Confirm title="메일을 삭제하시겠습니까?" ref={confirmRef} onClickYes={handleRemove} onClickCancel={() => confirmRef.current?.close()}>
+                        <p>정말 메일을 삭제하시겠습니까?</p>
+                    </Confirm>
+                </div>
                 <div className="mt-2 mb-2 w-full flex items-center">
                     {
                         attaches && attaches.length > 0 ? (
@@ -126,7 +153,7 @@ export const App = () => {
                             {
                                 attaches.map((mime, idx) => {
                                     return (
-                                        <button key={idx} className="p-1 text-white bg-blue-400 border border-gray-200 rounded-md" onClick={() => downloadAttachment(
+                                        <button key={idx} className="p-1 text-white bg-blue-400 border border-gray-200 rounded-md text-sm" onClick={() => downloadAttachment(
                                             mime.file?.filename || Date.now().toString(),
                                             mime.contentBody
                                         )}>

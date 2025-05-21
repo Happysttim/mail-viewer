@@ -1,6 +1,5 @@
 import { app as electronApp, BrowserWindow, ipcMain, Notification } from "electron";
 import path from "node:path";
-import dotenv from "dotenv";
 import { addUser, existsUser, user } from "lib/database";
 import { MailDTO, StreamDTO, UserDTO } from "lib/database/dto";
 import { UserService } from "lib/database/service";
@@ -9,7 +8,7 @@ import { ImapCommandMap, Pop3CommandMap } from "lib/command";
 import { ImapTransform, Pop3Transform } from "lib/stream/transform";
 import { ImapParser, Pop3Parser } from "lib/parser";
 import { timeout } from "./utils/timeout";
-import { createQuery } from "lib/command/imap";
+import { createQuery, Flag, FlagOperation } from "lib/command/imap";
 import log from "lib/logger";
 import { LogType } from "lib/logger/logger";
 import { decodeMime, decodeWords } from "./utils/decodeMime";
@@ -63,7 +62,7 @@ export class App {
 
         if (!electronApp.isPackaged) {
             this.entryWindow.loadURL(`${browserPath}/entry.html`);
-            this.entryWindow.webContents.openDevTools();
+            this.entryWindow.webContents.openDevTools({ mode: "detach" });
         } else {
             this.entryWindow.loadFile(`${browserPath}/entry.html`);
         }
@@ -86,7 +85,7 @@ export class App {
 
         if (!electronApp.isPackaged) {
             this.mainWindow.loadURL(`${browserPath}/main.html`);
-            this.mainWindow.webContents.openDevTools();
+            this.mainWindow.webContents.openDevTools({ mode: "detach" });
         } else {
             this.mainWindow.loadFile(`${browserPath}/main.html`);
         }
@@ -110,7 +109,7 @@ export class App {
 
         if (!electronApp.isPackaged) {
             this.infoWindow.loadURL(`${browserPath}/info.html`);
-            this.infoWindow.webContents.openDevTools();
+            this.infoWindow.webContents.openDevTools({ mode: "detach" });
         } else {
             this.infoWindow.loadFile(`${browserPath}/info.html`);
         }
@@ -134,7 +133,7 @@ export class App {
 
         if (!electronApp.isPackaged) {
             this.mailViewWindow.loadURL(`${browserPath}/view.html`);
-            this.mailViewWindow.webContents.openDevTools();
+            this.mailViewWindow.webContents.openDevTools({ mode: "detach" });
         } else {
             this.mailViewWindow.loadFile(`${browserPath}/view.html`);
         }
@@ -239,6 +238,18 @@ export class App {
             }
         });
 
+        ipcMain.on("request-close-mailview", async (_) => {
+            if (!this.userService) {
+                return;
+            }
+
+            if (this.mailViewWindow) {
+                this.mailViewWindow.close();
+                if (this.mainWindow) {
+                    this.mainWindow.webContents.send("update-mail");
+                }
+            }
+        });
 
         ipcMain.handle("create-user-account", async (_, [ userDto ]: [ UserDTO ]) => {
             if (await existsUser(userDto.id)) {
@@ -540,6 +551,30 @@ export class App {
             await stream.disconnect();
             return result;
         });
+
+        ipcMain.handle("read-range-mails", async (_, [ streamDto, range ]: [ StreamDTO, string[] ]) => {
+            if (!this.userService) {
+                return false;
+            }
+
+            return await this.readMail(streamDto, ...range);
+        });
+
+        ipcMain.handle("delete-range-mails", async (_, [ streamDto, range ]: [ StreamDTO, string[] ]) => {
+            if (!this.userService) {
+                return false;
+            }
+
+            return await this.deleteMail(streamDto, ...range);
+        });
+
+        ipcMain.handle("delete-mail", async (_, [ streamDto, id ]: [ StreamDTO, string ]) => {
+            if (!this.userService) {
+                return false;
+            }
+
+            return await this.deleteMail(streamDto, ...[ id ]);
+        });
     }
 
     
@@ -598,13 +633,17 @@ export class App {
             return;
         }
 
-        await handler.command("uid").execute("STORE", {
-            operation: "+FLAGS",
-            flag: "\\Seen",
-            range: id,
-        });
+        await this.imapStoreFlag(handler, "+FLAGS", "\\Seen", id);
 
         return contents[0].mailContent.content;
+    }
+
+    async imapStoreFlag(handler: Handler<ImapCommandMap>, operation: FlagOperation, flag: Flag, range: string) {
+        await handler.command("uid").execute("STORE", {
+            operation,
+            flag,
+            range,
+        });
     }
 
     async pop3RetrContents(id: string, handler: Handler<Pop3CommandMap>): Promise<ContentSchemaType | undefined> {
@@ -799,8 +838,6 @@ export class App {
 
             return 0;
         }
-
-        return 0;
     }
 
     async updateImapHistory(streamId: string, network: MailNetwork<ImapCommandMap>) {
@@ -1093,6 +1130,62 @@ export class App {
         } catch(e) {
             return false;
         }
+    }
+
+    async readMail(streamDto: StreamDTO, ...range: string[]): Promise<boolean> {
+        if (!this.userService) {
+            return false;
+        }
+
+        const streamService = await this.userService.streamService(streamDto.streamId);
+        if (!streamService) {
+            return false;
+        }
+
+        if (streamDto.protocol === "imap") {
+            const network = this.streamManager.stream(streamDto.streamId);
+            if (!network) {
+                return false;
+            }
+
+            const handler = network.handler();
+            if (!handler) {
+                return false;
+            }
+
+            await this.imapStoreFlag(handler, "+FLAGS", "\\Seen", range.join(","));
+        }
+
+        await streamService.readRange(streamDto.protocol === "imap" ? "uid" : "fetchId", range);
+        return true;
+    }
+
+    async deleteMail(streamDto: StreamDTO, ...range: string[]): Promise<boolean> {
+        if (!this.userService) {
+            return false;
+        }
+
+        const streamService = await this.userService.streamService(streamDto.streamId);
+        if (!streamService) {
+            return false;
+        }
+
+        if (streamDto.protocol === "imap") {
+            const network = this.streamManager.stream(streamDto.streamId);
+            if (!network) {
+                return false;
+            }
+
+            const handler = network.handler();
+            if (!handler) {
+                return false;
+            }
+
+            await this.imapStoreFlag(handler, "+FLAGS", "\\Deleted", range.join(","));
+        }
+
+        await streamService.removeRange(streamDto.protocol === "imap" ? "uid" : "fetchId", range);
+        return true;
     }
 
     private async createStream(protocol: string, streamId: string, hostname: string, port: number, secure: boolean): Promise<MailNetwork<ImapCommandMap> | MailNetwork<Pop3CommandMap> | undefined> {

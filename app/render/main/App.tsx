@@ -1,4 +1,4 @@
-import React, { RefObject, Suspense, useEffect, useState } from "react";
+import React, { RefObject, Suspense, useEffect, useRef, useState } from "react";
 import { Panel } from "./components/Panel";
 import { StreamList } from "./components/StreamList";
 import { StreamItem } from "./components/StreamItem";
@@ -13,7 +13,7 @@ import { EachCheckboxTr } from "./components/EachCheckboxTr";
 import { Td } from "./components/Td";
 import { format } from "date-fns";
 import { Pagenation } from "./components/Pagenation";
-import { MailDTO } from "lib/database/dto";
+import { MailDTO, StreamDTO } from "lib/database/dto";
 import { QueryClient, QueryClientProvider, useSuspenseQuery } from "@tanstack/react-query";
 import { Processing } from "../common/components/Processing";
 import { MailFilter, MapParameter } from "app/type";
@@ -26,6 +26,7 @@ import { NewAccountIcon } from "./icons/NewAccountIcon";
 import { LogoutIcon } from "./icons/LogoutIcon";
 import { ReloadIcon } from "./icons/Reload";
 import { SearchModal } from "./components/SearchModal";
+import { Confirm, ConfirmRef } from "../common/components/Confirm";
 
 type MailListType = "get-all-mails" | "get-mail-list-page" | "get-mail-list-filter";
 type MailListTypeProps<K extends MailListType> = {
@@ -41,6 +42,7 @@ type StreamProps = {
 };
 
 type MailTableProps<K extends MailListType> = {
+    stream: StreamDTO,
     type: K;
     listProps: MailListProps<K>;
     items: MailDTO[];
@@ -51,7 +53,7 @@ type MailTableProps<K extends MailListType> = {
     setMails: (v: MailDTO[]) => void;
     setPage: (v: number) => void;
     setTotal: (v: number) => void;
-    onClick: (v: MailDTO) => void;
+    setUpdate: (v: number) => void;
 };
 
 const queryClient = new QueryClient({
@@ -99,7 +101,10 @@ const Stream = ({ items, setStreams, setSelectedStream, onClick }: StreamProps) 
     );
 };
 
-const MailTable = <K extends MailListType>({ type, listProps, items, total, page, limit, update, setTotal, setMails, setPage, onClick }: MailTableProps<K>) => {
+const MailTable = <K extends MailListType>({ stream, type, listProps, items, total, page, limit, update, setMails, setPage, setUpdate }: MailTableProps<K>) => {
+    const [ checkedAll, setCheckedAll ] = useState(false);
+    const [ checkedRange, setCheckedRange ] = useState<string[]>([]);
+    const confirmRef = useRef<ConfirmRef>(null);
     const { data } = useSuspenseQuery({
         queryKey: [type, listProps, update],
         queryFn: async () => {
@@ -111,15 +116,77 @@ const MailTable = <K extends MailListType>({ type, listProps, items, total, page
 
     useEffect(() => {
         setMails(data ?? []);
+        setCheckedAll(false);
+        setCheckedRange([]);
     }, [ data ]);
+
+    const handleRead = async (item: StreamDTO) => {
+        if (checkedRange.length > 0 && await window.ipcRenderer.invoke("read-range-mails", item, checkedRange)) {
+            setUpdate(Date.now());
+        }
+    };
+
+    const handleRemove = async (item: StreamDTO) => {
+        if (await window.ipcRenderer.invoke("delete-range-mails", item, checkedRange)) {
+            setUpdate(Date.now());
+        }
+
+        confirmRef.current?.close();
+    };
+
+    const handleChange = async (checked: boolean, data: MailDTO) => {
+        setCheckedRange(
+            (prev) => {
+                const compareId = stream.protocol === "imap" ? data.uid : data.fetchId.toString();
+                const find = prev.find((value) => value === compareId);
+                if (checked && find === undefined) {
+                    prev.push(compareId);
+                    return [...prev];
+                } else if (!checked) {
+                    return prev.filter((value) => value != compareId);
+                }
+
+                return prev;
+            }
+        );
+    };
+
+    useEffect(() => {
+        if (checkedRange.length > 0) {
+            console.log(checkedRange);
+        }
+    }, [ checkedRange ]);
 
     return (
         <>
-            <CheckBoxTable bind={items} checked={false}>
+            {
+                checkedRange.length > 0 ?
+                <Confirm title="메일을 삭제하시겠습니까?" ref={confirmRef} onClickYes={() => handleRemove(stream)} onClickCancel={() => confirmRef.current?.close()}>
+                {
+                    <p>정말 { checkedRange.length } 개의 메일을 삭제하시겠습니까?</p>
+                }
+                </Confirm> :
+                <Confirm title="오류" ref={confirmRef} onClickYes={() => confirmRef.current?.close()}>
+                {
+                    <p>1개 이상의 메일을 선택해야 합니다.</p>
+                }
+                </Confirm>
+            }
+            <div className="w-full flex p-2 mt-2 items-center">
+                <input type="checkbox" checked={checkedAll} onChange={() => setCheckedAll(!checkedAll)} className="w-4 h-4 mr-7 rounded-sm" />
+                <button className="p-1 pr-3 pl-3 bg-white rounded-md hover:bg-gray-200 flex items-center mr-4" onClick={() => handleRead(stream)}>읽기</button>
+                <button className="p-1 pr-3 pl-3 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center mr-4" onClick={() => {
+                    if (confirmRef.current && !confirmRef.current.isOpen) {
+                        console.log(checkedRange.length);
+                        confirmRef.current.open();
+                    }
+                }}>삭제</button>
+            </div>
+            <CheckBoxTable bind={items} checked={checkedAll}>
                 {
                     (checked, data) => {
                         return (
-                            <EachCheckboxTr key={data.mailId} data={data} checked={checked} onChange={() => console.log(data)} height={50}>
+                            <EachCheckboxTr key={data.mailId} data={data} checked={checked} onChange={(checked) => handleChange(checked, data)} height={50}>
                             {
                                 (data) => {
                                     const confirmedFont = data.isSeen ? "font-light" : "font-bold";
@@ -269,6 +336,7 @@ export const App = () => {
                                 </div>
                                 <Suspense fallback={<TablePageFallback />}>
                                     <MailTable
+                                        stream={selectedStream.stream}
                                         type={mailListProps.type}
                                         listProps={mailListProps.props}
                                         items={mails}
@@ -279,7 +347,7 @@ export const App = () => {
                                         setMails={setMails}
                                         setPage={setPage}
                                         setTotal={setTotal}
-                                        onClick={(v) => console.log(v)}
+                                        setUpdate={setUpdate}
                                     />
                                 </Suspense>
                             </QueryClientProvider>
